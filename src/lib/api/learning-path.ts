@@ -134,7 +134,22 @@ export async function getLearningPathDetail(
 ): Promise<LearningPathDetail | null> {
   await delay(MOCK_DELAY_MS);
   const detail = PATH_DETAILS[id];
-  return detail ? structuredClone(detail) : null;
+  if (detail) return structuredClone(detail);
+  const summary = MOCK_LEARNING_PATHS.find((p) => p.id === id);
+  if (summary) {
+    return {
+      id: summary.id,
+      title: summary.title,
+      courseCount: 0,
+      courses: [],
+    };
+  }
+  return {
+    id,
+    title: "Learning path baru",
+    courseCount: 0,
+    courses: [],
+  };
 }
 
 export async function createLearningPath(topic: string): Promise<string> {
