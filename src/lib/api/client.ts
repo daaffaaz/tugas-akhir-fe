@@ -13,7 +13,7 @@ export class ApiError extends Error {
   }
 }
 
-type FetchOptions = RequestInit & {
+type FetchOptions = Omit<RequestInit, "body"> & {
   /** Typed body — will be JSON-serialised automatically. */
   body?: unknown;
   /** When true, attaches the stored Bearer token to the request. */

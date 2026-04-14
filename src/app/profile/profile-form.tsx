@@ -22,7 +22,11 @@ const initial = {
   logicLevel: 2,
   weeklyHours: "8 - 14 jam (Moderat)",
   studySlot: "malam" as StudySlot,
-  materialFormat: "interactive" as MaterialFormat,
+  materialFormat: "interactive" as
+    | "video"
+    | "text"
+    | "interactive"
+    | "project",
   theoryPractice: "Seimbang (50/50)",
   evaluation: "Coding Challenge",
   targetRole: "DevOps/Cloud",
@@ -43,8 +47,9 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 function TextInput({
   value,
   onChange,
+  className,
   ...rest
-}: React.InputHTMLAttributes<HTMLInputElement> & {
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> & {
   value: string;
   onChange: (v: string) => void;
 }) {
@@ -55,7 +60,7 @@ function TextInput({
       onChange={(e) => onChange(e.target.value)}
       className={cn(
         "w-full rounded border border-[#e5e7eb] bg-[#f7f7f7] px-4 py-3 font-body text-sm text-dark outline-none ring-gold/30 focus:ring-2",
-        rest.className,
+        className,
       )}
     />
   );
