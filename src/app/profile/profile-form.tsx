@@ -1,74 +1,96 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
-import { getProfile, updateProfile } from "@/lib/api/profile";
+import {
+  getProfile,
+  getPreferences,
+  updateProfile,
+  updatePreferences,
+  uploadAvatar,
+  type UserPreferences,
+} from "@/lib/api/profile";
 
 // ---------------------------------------------------------------------------
-// Local-only preference types (persisted to localStorage until
-// GET/PATCH /api/users/preferences/ is available — see docs/backend-profile-preferences-api.md)
+// Preference state type — mirrors UserPreferences but with non-null defaults
 // ---------------------------------------------------------------------------
 
-type OsChoice = "windows" | "macos" | "linux";
-type StudySlot = "pagi" | "malam" | "kerja" | "weekend";
-
-type LocalPreferences = {
-  job: string;
-  ageRange: string;
-  education: string;
-  os: OsChoice;
-  gitSkill: string;
-  cliLevel: number;
-  logicLevel: number;
-  weeklyHours: string;
-  studySlot: StudySlot;
-  materialFormat: "video" | "text" | "interactive" | "project";
-  theoryPractice: string;
-  evaluation: string;
-  targetRole: string;
-  mainGoal: string;
-  ram: string;
-  internet: string;
-  budget: string;
+type PrefsForm = {
+  job_title: string;
+  age_range: string;
+  education_level: string;
+  operating_system: "windows" | "macos" | "linux";
+  git_skill: "none" | "basic" | "intermediate";
+  cli_level: number;
+  logic_level: number;
+  weekly_hours: string;
+  study_slot: "pagi" | "malam" | "kerja" | "weekend";
+  material_format: "video" | "text" | "interactive" | "project";
+  theory_practice: "theory" | "balanced" | "practice";
+  evaluation_type: "quiz" | "coding_challenge" | "project";
+  target_role: "backend" | "devops" | "data_ml";
+  main_goal: "career_change" | "upskilling" | "hobby";
+  ram_gb: "<8" | "8-16" | "16+";
+  internet_quality: "unstable" | "stable" | "very_stable";
+  budget_idr: "<500k" | "500k-2m" | ">2m";
 };
 
-const PREFS_KEY = "pl_preferences";
-
-const defaultPreferences: LocalPreferences = {
-  job: "",
-  ageRange: "18-24 th",
-  education: "S1 (Sarjana)",
-  os: "windows",
-  gitSkill: "Bisa git clone & push dasar",
-  cliLevel: 2,
-  logicLevel: 2,
-  weeklyHours: "8 - 14 jam (Moderat)",
-  studySlot: "malam",
-  materialFormat: "interactive",
-  theoryPractice: "Seimbang (50/50)",
-  evaluation: "Coding Challenge",
-  targetRole: "DevOps/Cloud",
-  mainGoal: "Promosi/Upskilling",
-  ram: "< 8GB",
-  internet: "Cukup stabil",
-  budget: "< Rp 500rb",
+const defaultPrefs: PrefsForm = {
+  job_title: "",
+  age_range: "18-24",
+  education_level: "S1",
+  operating_system: "windows",
+  git_skill: "none",
+  cli_level: 0,
+  logic_level: 0,
+  weekly_hours: "<4",
+  study_slot: "malam",
+  material_format: "interactive",
+  theory_practice: "balanced",
+  evaluation_type: "coding_challenge",
+  target_role: "devops",
+  main_goal: "upskilling",
+  ram_gb: "<8",
+  internet_quality: "stable",
+  budget_idr: "<500k",
 };
 
-function loadPreferences(): LocalPreferences {
-  if (typeof window === "undefined") return defaultPreferences;
-  try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    if (!raw) return defaultPreferences;
-    return { ...defaultPreferences, ...(JSON.parse(raw) as Partial<LocalPreferences>) };
-  } catch {
-    return defaultPreferences;
-  }
-}
-
-function savePreferences(prefs: LocalPreferences) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+function apiPrefsToForm(raw: UserPreferences): PrefsForm {
+  return {
+    job_title: raw.job_title ?? "",
+    age_range: raw.age_range ?? defaultPrefs.age_range,
+    education_level: raw.education_level ?? defaultPrefs.education_level,
+    operating_system:
+      (raw.operating_system as PrefsForm["operating_system"]) ??
+      defaultPrefs.operating_system,
+    git_skill:
+      (raw.git_skill as PrefsForm["git_skill"]) ?? defaultPrefs.git_skill,
+    cli_level: raw.cli_level ?? 0,
+    logic_level: raw.logic_level ?? 0,
+    weekly_hours: raw.weekly_hours ?? defaultPrefs.weekly_hours,
+    study_slot:
+      (raw.study_slot as PrefsForm["study_slot"]) ?? defaultPrefs.study_slot,
+    material_format:
+      (raw.material_format as PrefsForm["material_format"]) ??
+      defaultPrefs.material_format,
+    theory_practice:
+      (raw.theory_practice as PrefsForm["theory_practice"]) ??
+      defaultPrefs.theory_practice,
+    evaluation_type:
+      (raw.evaluation_type as PrefsForm["evaluation_type"]) ??
+      defaultPrefs.evaluation_type,
+    target_role:
+      (raw.target_role as PrefsForm["target_role"]) ?? defaultPrefs.target_role,
+    main_goal:
+      (raw.main_goal as PrefsForm["main_goal"]) ?? defaultPrefs.main_goal,
+    ram_gb: (raw.ram_gb as PrefsForm["ram_gb"]) ?? defaultPrefs.ram_gb,
+    internet_quality:
+      (raw.internet_quality as PrefsForm["internet_quality"]) ??
+      defaultPrefs.internet_quality,
+    budget_idr:
+      (raw.budget_idr as PrefsForm["budget_idr"]) ?? defaultPrefs.budget_idr,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -88,21 +110,27 @@ function TextInput({
   onChange,
   className,
   readOnly,
+  disabled,
   ...rest
-}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "readOnly"> & {
+}: Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "onChange" | "value" | "readOnly" | "disabled"
+> & {
   value: string;
   onChange?: (v: string) => void;
   readOnly?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <input
       {...rest}
       value={value}
       readOnly={readOnly}
+      disabled={disabled}
       onChange={onChange ? (e) => onChange(e.target.value) : undefined}
       className={cn(
         "w-full rounded border border-[#e5e7eb] bg-[#f7f7f7] px-4 py-3 font-body text-sm text-dark outline-none ring-gold/30 focus:ring-2",
-        readOnly && "cursor-not-allowed opacity-60",
+        (readOnly ?? disabled) && "cursor-not-allowed opacity-60",
         className,
       )}
     />
@@ -113,16 +141,22 @@ function Select({
   value,
   onChange,
   options,
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
+  disabled?: boolean;
 }) {
   return (
     <select
       value={value}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full cursor-pointer appearance-none rounded border border-[#e5e7eb] bg-[#f7f7f7] bg-[length:12px] bg-[right_1rem_center] bg-no-repeat px-4 py-3 font-body text-sm text-dark outline-none ring-gold/30 focus:ring-2"
+      className={cn(
+        "w-full cursor-pointer appearance-none rounded border border-[#e5e7eb] bg-[#f7f7f7] bg-[length:12px] bg-[right_1rem_center] bg-no-repeat px-4 py-3 font-body text-sm text-dark outline-none ring-gold/30 focus:ring-2",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
       }}
@@ -140,10 +174,12 @@ function SegmentedScale({
   value,
   onChange,
   labels,
+  disabled,
 }: {
   value: number;
   onChange: (n: number) => void;
   labels: string[];
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -151,12 +187,14 @@ function SegmentedScale({
         <button
           key={label}
           type="button"
+          disabled={disabled}
           onClick={() => onChange(i)}
           className={cn(
             "flex-1 rounded border px-2 py-2 text-center font-body text-[10px] font-bold uppercase leading-tight tracking-wide transition-colors min-w-[4.5rem]",
             value === i
               ? "border-gold bg-gold text-dark"
               : "border-[#e5e7eb] bg-white text-muted hover:border-gold/50",
+            disabled && "cursor-not-allowed opacity-60",
           )}
         >
           {label}
@@ -168,7 +206,7 @@ function SegmentedScale({
 
 function ProfileSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
+    <div className="animate-pulse space-y-3">
       <div className="h-8 w-48 rounded bg-[#e5e7eb]" />
       <div className="h-4 w-32 rounded bg-[#f3f4f6]" />
     </div>
@@ -180,36 +218,37 @@ function ProfileSkeleton() {
 // ---------------------------------------------------------------------------
 
 export function ProfileForm() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // --- Backend-managed fields ---
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
-  // --- Local preference fields (localStorage until BE ready) ---
-  const [prefs, setPrefs] = useState<LocalPreferences>(defaultPreferences);
-  const [baselinePrefs, setBaselinePrefs] = useState<LocalPreferences>(defaultPreferences);
+  // --- Preference fields (GET/PATCH /api/users/preferences/) ---
+  const [prefs, setPrefs] = useState<PrefsForm>(defaultPrefs);
+  const [prefsLoading, setPrefsLoading] = useState(true);
+
+  // --- Baseline snapshots for Discard ---
+  const [baselineName, setBaselineName] = useState("");
+  const [baselinePrefs, setBaselinePrefs] = useState<PrefsForm>(defaultPrefs);
 
   // --- Save state ---
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // --- Baseline for discard ---
-  const [baselineName, setBaselineName] = useState("");
-
   useEffect(() => {
-    const loaded = loadPreferences();
-    setPrefs(loaded);
-    setBaselinePrefs(loaded);
-
     getProfile()
-      .then((profile) => {
-        setFullName(profile.full_name);
-        setBaselineName(profile.full_name);
-        setEmail(profile.email);
-        setAvatarUrl(profile.avatar_url ?? null);
+      .then((p) => {
+        setFullName(p.full_name);
+        setBaselineName(p.full_name);
+        setEmail(p.email);
+        setAvatarUrl(p.avatar_url ?? null);
       })
       .catch((err: unknown) => {
         setProfileError(
@@ -217,13 +256,43 @@ export function ProfileForm() {
         );
       })
       .finally(() => setProfileLoading(false));
+
+    getPreferences()
+      .then((raw) => {
+        const loaded = apiPrefsToForm(raw);
+        setPrefs(loaded);
+        setBaselinePrefs(loaded);
+      })
+      .catch(() => {
+        // If preferences don't exist yet, fall back to defaults silently
+      })
+      .finally(() => setPrefsLoading(false));
   }, []);
 
-  function setPrefsField<K extends keyof LocalPreferences>(
+  function setPrefsField<K extends keyof PrefsForm>(
     key: K,
-    value: LocalPreferences[K],
+    value: PrefsForm[K],
   ) {
     setPrefs((p) => ({ ...p, [key]: value }));
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      const { avatar_url } = await uploadAvatar(file);
+      await updateProfile({ avatar_url });
+      setAvatarUrl(avatar_url);
+    } catch (err: unknown) {
+      setAvatarError(
+        err instanceof Error ? err.message : "Gagal mengunggah foto.",
+      );
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
   }
 
   const onDiscard = () => {
@@ -238,13 +307,12 @@ export function ProfileForm() {
     setSaveError(null);
     setSaveSuccess(false);
     try {
-      const updated = await updateProfile({
-        full_name: fullName,
-        ...(avatarUrl !== null ? { avatar_url: avatarUrl } : {}),
-      });
-      setFullName(updated.full_name);
-      setBaselineName(updated.full_name);
-      savePreferences(prefs);
+      const [updatedProfile] = await Promise.all([
+        updateProfile({ full_name: fullName }),
+        updatePreferences(prefs),
+      ]);
+      setFullName(updatedProfile.full_name);
+      setBaselineName(updatedProfile.full_name);
       setBaselinePrefs(prefs);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -261,6 +329,8 @@ export function ProfileForm() {
     avatarUrl ??
     "https://www.figma.com/api/mcp/asset/670578d8-e120-42d5-b51a-63caa7234ecf";
 
+  const isFormDisabled = profileLoading || prefsLoading;
+
   return (
     <main className="mx-auto w-full max-w-[1152px] flex-1 px-6 pb-24 pt-12 md:px-16">
       {/* Profile header */}
@@ -271,31 +341,61 @@ export function ProfileForm() {
             <img
               src={avatarSrc}
               alt=""
-              className="size-full object-cover"
+              className={cn(
+                "size-full object-cover transition-opacity",
+                avatarUploading && "opacity-50",
+              )}
             />
           </div>
-          {/* Avatar upload is cosmetic until POST /api/users/avatar/ is available */}
           <button
             type="button"
-            className="absolute bottom-1 right-1 flex size-9 items-center justify-center rounded-full bg-gold text-dark shadow-md hover:bg-dark hover:text-gold"
+            disabled={avatarUploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-1 right-1 flex size-9 items-center justify-center rounded-full bg-gold text-dark shadow-md hover:bg-dark hover:text-gold disabled:opacity-60"
             aria-label="Ubah foto profil"
-            title="Avatar upload belum tersedia"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M4 20h4l10.5-10.5-4-4L4 16v4z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M13.5 6.5l4 4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
+            {avatarUploading ? (
+              <svg
+                className="animate-spin"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeDasharray="40"
+                  strokeDashoffset="10"
+                />
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 20h4l10.5-10.5-4-4L4 16v4z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M13.5 6.5l4 4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
         </div>
         <div>
           {profileLoading ? (
@@ -315,6 +415,11 @@ export function ProfileForm() {
               </p>
             </>
           )}
+          {avatarError && (
+            <p className="mt-2 font-body text-xs font-semibold text-red-500">
+              {avatarError}
+            </p>
+          )}
         </div>
       </section>
 
@@ -331,7 +436,7 @@ export function ProfileForm() {
                 <TextInput
                   value={fullName}
                   onChange={setFullName}
-                  disabled={profileLoading}
+                  disabled={isFormDisabled}
                 />
               </div>
               <div>
@@ -346,8 +451,9 @@ export function ProfileForm() {
               <div>
                 <FieldLabel>Pekerjaan</FieldLabel>
                 <TextInput
-                  value={prefs.job}
-                  onChange={(v) => setPrefsField("job", v)}
+                  value={prefs.job_title}
+                  onChange={(v) => setPrefsField("job_title", v)}
+                  disabled={isFormDisabled}
                 />
               </div>
               <div className="border-t border-[#f0f0f0] pt-6">
@@ -358,24 +464,26 @@ export function ProfileForm() {
                   <div>
                     <FieldLabel>Usia</FieldLabel>
                     <Select
-                      value={prefs.ageRange}
-                      onChange={(v) => setPrefsField("ageRange", v)}
+                      value={prefs.age_range}
+                      onChange={(v) => setPrefsField("age_range", v)}
+                      disabled={isFormDisabled}
                       options={[
-                        { value: "18-24 th", label: "18-24 th" },
-                        { value: "25-34 th", label: "25-34 th" },
-                        { value: "35+ th", label: "35+ th" },
+                        { value: "18-24", label: "18-24 th" },
+                        { value: "25-34", label: "25-34 th" },
+                        { value: "35+", label: "35+ th" },
                       ]}
                     />
                   </div>
                   <div>
                     <FieldLabel>Pendidikan terakhir</FieldLabel>
                     <Select
-                      value={prefs.education}
-                      onChange={(v) => setPrefsField("education", v)}
+                      value={prefs.education_level}
+                      onChange={(v) => setPrefsField("education_level", v)}
+                      disabled={isFormDisabled}
                       options={[
                         { value: "SMA", label: "SMA" },
                         { value: "D3", label: "D3" },
-                        { value: "S1 (Sarjana)", label: "S1 (Sarjana)" },
+                        { value: "S1", label: "S1 (Sarjana)" },
                         { value: "S2", label: "S2" },
                       ]}
                     />
@@ -409,12 +517,14 @@ export function ProfileForm() {
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setPrefsField("os", key)}
+                      disabled={isFormDisabled}
+                      onClick={() => setPrefsField("operating_system", key)}
                       className={cn(
                         "rounded-full px-4 py-2 font-body text-sm font-bold transition-colors",
-                        prefs.os === key
+                        prefs.operating_system === key
                           ? "bg-gold text-dark"
                           : "bg-[#f3f4f6] text-[#4b5563] hover:bg-gold/30",
+                        isFormDisabled && "cursor-not-allowed opacity-60",
                       )}
                     >
                       {label}
@@ -425,34 +535,31 @@ export function ProfileForm() {
               <div>
                 <FieldLabel>Kemampuan Git</FieldLabel>
                 <Select
-                  value={prefs.gitSkill}
-                  onChange={(v) => setPrefsField("gitSkill", v)}
+                  value={prefs.git_skill}
+                  onChange={(v) => setPrefsField("git_skill", v as PrefsForm["git_skill"])}
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "Belum pernah", label: "Belum pernah" },
-                    {
-                      value: "Bisa git clone & push dasar",
-                      label: "Bisa git clone & push dasar",
-                    },
-                    {
-                      value: "Branching & merge nyaman",
-                      label: "Branching & merge nyaman",
-                    },
+                    { value: "none", label: "Belum pernah" },
+                    { value: "basic", label: "Bisa git clone & push dasar" },
+                    { value: "intermediate", label: "Branching & merge nyaman" },
                   ]}
                 />
               </div>
               <div>
                 <FieldLabel>CLI / terminal</FieldLabel>
                 <SegmentedScale
-                  value={prefs.cliLevel}
-                  onChange={(n) => setPrefsField("cliLevel", n)}
+                  value={prefs.cli_level}
+                  onChange={(n) => setPrefsField("cli_level", n)}
+                  disabled={isFormDisabled}
                   labels={["Tidak pernah", "Jarang", "Sering", "Sangat sering"]}
                 />
               </div>
               <div>
                 <FieldLabel>Programming logic</FieldLabel>
                 <SegmentedScale
-                  value={prefs.logicLevel}
-                  onChange={(n) => setPrefsField("logicLevel", n)}
+                  value={prefs.logic_level}
+                  onChange={(n) => setPrefsField("logic_level", n)}
+                  disabled={isFormDisabled}
                   labels={[
                     "Tidak paham",
                     "Teori saja",
@@ -472,16 +579,14 @@ export function ProfileForm() {
               <div>
                 <FieldLabel>Alokasi per minggu</FieldLabel>
                 <Select
-                  value={prefs.weeklyHours}
-                  onChange={(v) => setPrefsField("weeklyHours", v)}
+                  value={prefs.weekly_hours}
+                  onChange={(v) => setPrefsField("weekly_hours", v)}
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "< 4 jam", label: "< 4 jam" },
-                    { value: "4 - 8 jam", label: "4 - 8 jam" },
-                    {
-                      value: "8 - 14 jam (Moderat)",
-                      label: "8 - 14 jam (Moderat)",
-                    },
-                    { value: "15+ jam", label: "15+ jam" },
+                    { value: "<4", label: "< 4 jam" },
+                    { value: "4-8", label: "4 - 8 jam" },
+                    { value: "8-14", label: "8 - 14 jam (Moderat)" },
+                    { value: "15+", label: "15+ jam" },
                   ]}
                 />
               </div>
@@ -500,17 +605,19 @@ export function ProfileForm() {
                       key={key}
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded border px-3 py-3 font-body text-sm font-semibold",
-                        prefs.studySlot === key
+                        prefs.study_slot === key
                           ? "border-gold bg-gold/10"
                           : "border-[#e5e7eb] hover:border-gold/40",
+                        isFormDisabled && "cursor-not-allowed opacity-60",
                       )}
                     >
                       <input
                         type="radio"
                         name="slot"
                         className="accent-gold"
-                        checked={prefs.studySlot === key}
-                        onChange={() => setPrefsField("studySlot", key)}
+                        disabled={isFormDisabled}
+                        checked={prefs.study_slot === key}
+                        onChange={() => setPrefsField("study_slot", key)}
                       />
                       {label}
                     </label>
@@ -537,12 +644,14 @@ export function ProfileForm() {
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setPrefsField("materialFormat", key)}
+                  disabled={isFormDisabled}
+                  onClick={() => setPrefsField("material_format", key)}
                   className={cn(
                     "rounded-lg border-2 py-6 text-center font-heading text-xs font-extrabold uppercase tracking-wider",
-                    prefs.materialFormat === key
+                    prefs.material_format === key
                       ? "border-gold bg-gold/10 text-dark"
                       : "border-[#e5e7eb] text-muted hover:border-gold/40",
+                    isFormDisabled && "cursor-not-allowed opacity-60",
                   )}
                 >
                   {label}
@@ -553,24 +662,33 @@ export function ProfileForm() {
               <div>
                 <FieldLabel>Komposisi teori vs praktik</FieldLabel>
                 <Select
-                  value={prefs.theoryPractice}
-                  onChange={(v) => setPrefsField("theoryPractice", v)}
+                  value={prefs.theory_practice}
+                  onChange={(v) =>
+                    setPrefsField("theory_practice", v as PrefsForm["theory_practice"])
+                  }
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "Teori lebih banyak", label: "Teori lebih banyak" },
-                    { value: "Seimbang (50/50)", label: "Seimbang (50/50)" },
-                    { value: "Praktik lebih banyak", label: "Praktik lebih banyak" },
+                    { value: "theory", label: "Teori lebih banyak" },
+                    { value: "balanced", label: "Seimbang (50/50)" },
+                    { value: "practice", label: "Praktik lebih banyak" },
                   ]}
                 />
               </div>
               <div>
                 <FieldLabel>Evaluasi favorit</FieldLabel>
                 <Select
-                  value={prefs.evaluation}
-                  onChange={(v) => setPrefsField("evaluation", v)}
+                  value={prefs.evaluation_type}
+                  onChange={(v) =>
+                    setPrefsField(
+                      "evaluation_type",
+                      v as PrefsForm["evaluation_type"],
+                    )
+                  }
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "Quiz", label: "Quiz" },
-                    { value: "Coding Challenge", label: "Coding Challenge" },
-                    { value: "Proyek akhir", label: "Proyek akhir" },
+                    { value: "quiz", label: "Quiz" },
+                    { value: "coding_challenge", label: "Coding Challenge" },
+                    { value: "project", label: "Proyek akhir" },
                   ]}
                 />
               </div>
@@ -585,24 +703,30 @@ export function ProfileForm() {
               <div>
                 <FieldLabel>Target role IT</FieldLabel>
                 <Select
-                  value={prefs.targetRole}
-                  onChange={(v) => setPrefsField("targetRole", v)}
+                  value={prefs.target_role}
+                  onChange={(v) =>
+                    setPrefsField("target_role", v as PrefsForm["target_role"])
+                  }
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "Backend", label: "Backend" },
-                    { value: "DevOps/Cloud", label: "DevOps/Cloud" },
-                    { value: "Data/ML", label: "Data/ML" },
+                    { value: "backend", label: "Backend" },
+                    { value: "devops", label: "DevOps/Cloud" },
+                    { value: "data_ml", label: "Data/ML" },
                   ]}
                 />
               </div>
               <div>
                 <FieldLabel>Tujuan utama</FieldLabel>
                 <Select
-                  value={prefs.mainGoal}
-                  onChange={(v) => setPrefsField("mainGoal", v)}
+                  value={prefs.main_goal}
+                  onChange={(v) =>
+                    setPrefsField("main_goal", v as PrefsForm["main_goal"])
+                  }
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "Karir baru", label: "Karir baru" },
-                    { value: "Promosi/Upskilling", label: "Promosi/Upskilling" },
-                    { value: "Hobi", label: "Hobi" },
+                    { value: "career_change", label: "Karir baru" },
+                    { value: "upskilling", label: "Promosi/Upskilling" },
+                    { value: "hobby", label: "Hobi" },
                   ]}
                 />
               </div>
@@ -617,43 +741,54 @@ export function ProfileForm() {
               <div>
                 <FieldLabel>RAM laptop</FieldLabel>
                 <Select
-                  value={prefs.ram}
-                  onChange={(v) => setPrefsField("ram", v)}
+                  value={prefs.ram_gb}
+                  onChange={(v) =>
+                    setPrefsField("ram_gb", v as PrefsForm["ram_gb"])
+                  }
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "< 8GB", label: "< 8GB" },
-                    { value: "8 - 16GB", label: "8 - 16GB" },
-                    { value: "16GB+", label: "16GB+" },
+                    { value: "<8", label: "< 8GB" },
+                    { value: "8-16", label: "8 - 16GB" },
+                    { value: "16+", label: "16GB+" },
                   ]}
                 />
               </div>
               <div>
                 <FieldLabel>Kualitas internet</FieldLabel>
                 <Select
-                  value={prefs.internet}
-                  onChange={(v) => setPrefsField("internet", v)}
+                  value={prefs.internet_quality}
+                  onChange={(v) =>
+                    setPrefsField(
+                      "internet_quality",
+                      v as PrefsForm["internet_quality"],
+                    )
+                  }
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "Kurang stabil", label: "Kurang stabil" },
-                    { value: "Cukup stabil", label: "Cukup stabil" },
-                    { value: "Sangat stabil", label: "Sangat stabil" },
+                    { value: "unstable", label: "Kurang stabil" },
+                    { value: "stable", label: "Cukup stabil" },
+                    { value: "very_stable", label: "Sangat stabil" },
                   ]}
                 />
               </div>
               <div>
                 <FieldLabel>Budget tools</FieldLabel>
                 <Select
-                  value={prefs.budget}
-                  onChange={(v) => setPrefsField("budget", v)}
+                  value={prefs.budget_idr}
+                  onChange={(v) =>
+                    setPrefsField("budget_idr", v as PrefsForm["budget_idr"])
+                  }
+                  disabled={isFormDisabled}
                   options={[
-                    { value: "< Rp 500rb", label: "< Rp 500rb" },
-                    { value: "Rp 500rb - 2jt", label: "Rp 500rb - 2jt" },
-                    { value: "> 2jt", label: "> 2jt" },
+                    { value: "<500k", label: "< Rp 500rb" },
+                    { value: "500k-2m", label: "Rp 500rb - 2jt" },
+                    { value: ">2m", label: "> 2jt" },
                   ]}
                 />
               </div>
             </div>
           </div>
 
-          {/* Save feedback */}
           {saveError && (
             <p className="rounded border border-red-200 bg-red-50 px-4 py-3 font-body text-sm font-semibold text-red-600">
               {saveError}
@@ -677,7 +812,7 @@ export function ProfileForm() {
             <button
               type="button"
               onClick={onSave}
-              disabled={isSaving || profileLoading}
+              disabled={isSaving || isFormDisabled}
               className={primaryGoldCtaClass(
                 "rounded px-10 py-3 font-body text-sm font-bold shadow-sm disabled:opacity-60",
               )}
