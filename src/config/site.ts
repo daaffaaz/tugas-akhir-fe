@@ -1,4 +1,4 @@
 export const siteConfig = {
-  name: "App",
-  description: "Next.js application",
+  name: "PersonaLearn",
+  description: "Personalized learning platform",
 } as const;
