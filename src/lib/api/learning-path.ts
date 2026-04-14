@@ -131,7 +131,7 @@ export async function getLearningPathStats(): Promise<LearningPathStats> {
 
 export async function getLearningPathDetail(
   id: string,
-): Promise<LearningPathDetail | null> {
+): Promise<LearningPathDetail> {
   await delay(MOCK_DELAY_MS);
   const detail = PATH_DETAILS[id];
   if (detail) return structuredClone(detail);
