@@ -17,12 +17,12 @@ type SortKey = "relevance" | "rating" | "reviews";
 type RawCourse = {
   id: string;
   title: string;
-  instructor: string;
-  rating: number;
-  reviews_count: number;
-  thumbnail_url: string;
+  instructor: string | null;
+  rating: number | string;
+  reviews_count: number | string;
+  thumbnail_url: string | null;
   url: string;
-  price: number | null;
+  price: number | string | null;
   level: string;
   platform: {
     id: string;
@@ -57,13 +57,13 @@ function toFrontend(raw: RawCourse): CatalogCourse {
   return {
     id: raw.id,
     title: raw.title,
-    instructor: raw.instructor,
+    instructor: raw.instructor || "Unknown Author",
     platform: normalisePlatform(raw.platform.name),
-    rating: raw.rating,
-    reviewCount: raw.reviews_count,
-    thumbnailUrl: raw.thumbnail_url,
+    rating: Number(raw.rating),
+    reviewCount: Number(raw.reviews_count),
+    thumbnailUrl: raw.thumbnail_url ?? "",
     url: raw.url,
-    price: raw.price,
+    price: raw.price !== null && raw.price !== undefined ? Number(raw.price) : null,
     level: raw.level,
   };
 }
