@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter, Manrope } from "next/font/google";
 import { siteConfig } from "@/config/site";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,7 +34,9 @@ export default function RootLayout({
       lang="id"
       className={`${inter.variable} ${manrope.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="font-body flex min-h-full flex-col">{children}</body>
+      <body className="font-body flex min-h-full flex-col">
+          <AuthProvider>{children}</AuthProvider>
+        </body>
     </html>
   );
 }

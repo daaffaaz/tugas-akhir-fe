@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { register } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/client";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
@@ -15,21 +17,48 @@ const imgEye =
 
 export function RegisterForm() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!acceptedTerms) return;
+
+    if (password !== passwordConfirm) {
+      setError("Kata sandi dan konfirmasi kata sandi tidak cocok.");
+      return;
+    }
+
+    setError(null);
     setSubmitting(true);
     try {
-      await register({ firstName, lastName, email, password });
+      const result = await register({
+        email,
+        password,
+        password_confirm: passwordConfirm,
+        full_name: `${firstName} ${lastName}`.trim(),
+      });
+      signIn(
+        { id: result.id, email: result.email, full_name: result.full_name },
+        result.access,
+        result.refresh,
+      );
       router.push("/questionnaire");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Terjadi kesalahan. Silakan coba lagi.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -54,6 +83,12 @@ export function RegisterForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          {error && (
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 font-body text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="font-body text-xs font-bold uppercase tracking-wide text-dark">
@@ -132,6 +167,40 @@ export function RegisterForm() {
             </div>
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <label className="font-body text-xs font-bold uppercase tracking-wide text-dark">
+              Konfirmasi Kata Sandi
+            </label>
+            <div className="relative">
+              <input
+                type={showPasswordConfirm ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                placeholder="••••••••"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                className="w-full rounded border-0 bg-[rgba(229,229,224,0.5)] px-4 py-3 pr-10 font-body text-base text-dark placeholder:text-[#6b7280] outline-none focus:ring-2 focus:ring-gold/40"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordConfirm((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                aria-label={
+                  showPasswordConfirm ? "Sembunyikan sandi" : "Tampilkan sandi"
+                }
+              >
+                <Image
+                  src={imgEye}
+                  alt=""
+                  width={13}
+                  height={9}
+                  className="opacity-60"
+                  unoptimized
+                />
+              </button>
+            </div>
+          </div>
+
           <label className="flex cursor-pointer items-start gap-3 py-2">
             <input
               type="checkbox"
@@ -157,7 +226,7 @@ export function RegisterForm() {
             )}
           >
             <span className="font-heading text-sm font-extrabold uppercase tracking-widest">
-              Daftar Sekarang
+              {submitting ? "Mendaftar…" : "Daftar Sekarang"}
             </span>
           </button>
 

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { QUESTIONNAIRE_TOTAL } from "@/lib/questionnaire-data";
+import { getQuestions } from "@/lib/api/questionnaire";
 import { QuestionnaireStepClient } from "./questionnaire-step-client";
 
 type PageProps = {
@@ -9,14 +9,17 @@ type PageProps = {
 export default async function QuestionnaireStepPage({ params }: PageProps) {
   const { step: stepParam } = await params;
   const step = Number.parseInt(stepParam, 10);
+
+  const questions = await getQuestions();
+
   if (
     Number.isNaN(step) ||
     step < 1 ||
-    step > QUESTIONNAIRE_TOTAL ||
+    step > questions.length ||
     String(step) !== stepParam
   ) {
     notFound();
   }
 
-  return <QuestionnaireStepClient key={step} step={step} />;
+  return <QuestionnaireStepClient key={step} step={step} questions={questions} />;
 }

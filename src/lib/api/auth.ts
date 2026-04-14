@@ -1,34 +1,49 @@
-/**
- * Auth API stubs — replace with real fetch() calls when backend is ready.
- */
+import { apiFetch } from "./client";
 
 export type RegisterPayload = {
-  firstName: string;
-  lastName: string;
   email: string;
   password: string;
+  password_confirm: string;
+  full_name: string;
 };
 
-const MOCK_DELAY_MS = 400;
+export type AuthResponse = {
+  access: string;
+  refresh: string;
+  id: string;
+  email: string;
+  full_name: string;
+};
 
-function delay(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+export type LoginResponse = {
+  access: string;
+  refresh: string;
+};
+
+export async function login(
+  email: string,
+  password: string,
+): Promise<LoginResponse> {
+  return apiFetch<LoginResponse>("/api/auth/login/", {
+    method: "POST",
+    body: { email, password },
+  });
 }
 
-export async function login(email: string, password: string): Promise<void> {
-  await delay(MOCK_DELAY_MS);
-  if (typeof window !== "undefined") {
-    console.info("[auth stub] login", { email, passwordLength: password.length });
-  }
+export async function register(
+  payload: RegisterPayload,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/api/auth/register/", {
+    method: "POST",
+    body: payload,
+  });
 }
 
-export async function register(payload: RegisterPayload): Promise<void> {
-  await delay(MOCK_DELAY_MS);
-  if (typeof window !== "undefined") {
-    console.info("[auth stub] register", {
-      email: payload.email,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-    });
-  }
+export async function refreshAccessToken(
+  refresh: string,
+): Promise<{ access: string }> {
+  return apiFetch<{ access: string }>("/api/auth/token/refresh/", {
+    method: "POST",
+    body: { refresh },
+  });
 }

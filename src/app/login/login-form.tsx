@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { login } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/client";
+import { getProfile } from "@/lib/api/profile";
+import { setTokens } from "@/lib/auth-storage";
 import {
   primaryCtaIconHover,
   primaryGoldCtaClass,
@@ -20,18 +24,44 @@ const imgArrow =
 
 export function LoginForm() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      router.push("/questionnaire");
+      const tokens = await login(email, password);
+
+      // Store tokens temporarily so getProfile can attach the Bearer header.
+      setTokens(tokens.access, tokens.refresh);
+
+      try {
+        // Profile endpoint only succeeds if the questionnaire is completed.
+        const profile = await getProfile();
+        signIn(
+          { id: profile.id, email: profile.email, full_name: profile.full_name },
+          tokens.access,
+          tokens.refresh,
+        );
+        router.push("/");
+      } catch {
+        // Questionnaire not yet completed — sign in with minimal info.
+        signIn({ id: "", email, full_name: "" }, tokens.access, tokens.refresh);
+        router.push("/questionnaire");
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Terjadi kesalahan. Silakan coba lagi.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -51,6 +81,12 @@ export function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          {error && (
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 font-body text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <label className="font-body text-xs font-bold uppercase tracking-wide text-muted-2">
               Alamat Email
@@ -127,16 +163,18 @@ export function LoginForm() {
             )}
           >
             <span className="font-heading text-sm font-extrabold uppercase tracking-widest">
-              Sign In
+              {submitting ? "Masuk…" : "Sign In"}
             </span>
-            <Image
-              src={imgArrow}
-              alt=""
-              width={14}
-              height={14}
-              className={cn("size-[13.5px]", primaryCtaIconHover)}
-              unoptimized
-            />
+            {!submitting && (
+              <Image
+                src={imgArrow}
+                alt=""
+                width={14}
+                height={14}
+                className={cn("size-[13.5px]", primaryCtaIconHover)}
+                unoptimized
+              />
+            )}
           </button>
 
           <div className="flex items-center gap-4 py-4">

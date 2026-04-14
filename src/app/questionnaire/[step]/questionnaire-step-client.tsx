@@ -5,42 +5,69 @@ import { useCallback, useMemo, useState } from "react";
 import { AppBar } from "@/components/layout/AppBar";
 import { OptionCard } from "@/components/questionnaire/OptionCard";
 import { ProgressBar } from "@/components/questionnaire/ProgressBar";
-import { QUESTIONNAIRE_QUESTIONS } from "@/lib/questionnaire-data";
+import { ApiError } from "@/lib/api/client";
+import type { ApiQuestion } from "@/lib/api/questionnaire";
+import { submitQuestionnaire } from "@/lib/api/questionnaire";
 import { primaryGoldCtaClassSoftDisabled } from "@/lib/primary-cta";
+import {
+  buildSubmissionPayload,
+  clearAnswers,
+  loadAnswers,
+  saveAnswer,
+} from "@/lib/questionnaire-storage";
 import { cn } from "@/lib/utils";
-import { loadAnswers, saveAnswer } from "@/lib/questionnaire-storage";
 
 type Props = {
   step: number;
+  questions: ApiQuestion[];
 };
 
-export function QuestionnaireStepClient({ step }: Props) {
+export function QuestionnaireStepClient({ step, questions }: Props) {
   const router = useRouter();
-  const total = QUESTIONNAIRE_QUESTIONS.length;
-  const question = QUESTIONNAIRE_QUESTIONS[step - 1];
-  const stepKey = String(step);
+  const total = questions.length;
+  const question = questions[step - 1];
 
-  const [selectedId, setSelectedId] = useState<string | null>(() => {
+  const [selectedKey, setSelectedKey] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-    return loadAnswers()[stepKey] ?? null;
+    return loadAnswers()[question.id] ?? null;
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const onSelect = useCallback(
-    (optionId: string) => {
-      setSelectedId(optionId);
-      saveAnswer(stepKey, optionId);
+    (optionKey: string) => {
+      setSelectedKey(optionKey);
+      saveAnswer(question.id, optionKey);
     },
-    [stepKey],
+    [question.id],
   );
 
-  const canGoNext = Boolean(selectedId);
+  const canGoNext = Boolean(selectedKey);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!canGoNext) return;
+
     if (step >= total) {
-      router.push("/");
- return;
+      setIsSubmitting(true);
+      setSubmitError(null);
+      try {
+        const payload = buildSubmissionPayload(questions);
+        await submitQuestionnaire(payload);
+        clearAnswers();
+        router.push("/");
+      } catch (err) {
+        setSubmitError(
+          err instanceof ApiError
+            ? err.message
+            : "Terjadi kesalahan. Silakan coba lagi.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
     }
+
     router.push(`/questionnaire/${step + 1}`);
   };
 
@@ -49,7 +76,14 @@ export function QuestionnaireStepClient({ step }: Props) {
     router.push(`/questionnaire/${step - 1}`);
   };
 
-  const options = useMemo(() => question?.options ?? [], [question]);
+  const options = useMemo(
+    () =>
+      Object.entries(question.options_json).map(([key, label]) => ({
+        key,
+        label,
+      })),
+    [question.options_json],
+  );
 
   if (!question) return null;
 
@@ -63,26 +97,32 @@ export function QuestionnaireStepClient({ step }: Props) {
 
             <div className="flex flex-col gap-8">
               <h1 className="text-center font-heading text-2xl font-extrabold leading-9 text-[#111827] md:text-[30px]">
-                {question.prompt}
+                {question.question_text}
               </h1>
 
               <div className="flex flex-col gap-3">
                 {options.map((opt) => (
                   <OptionCard
-                    key={opt.id}
+                    key={opt.key}
                     label={opt.label}
-                    selected={selectedId === opt.id}
-                    onSelect={() => onSelect(opt.id)}
+                    selected={selectedKey === opt.key}
+                    onSelect={() => onSelect(opt.key)}
                   />
                 ))}
               </div>
             </div>
 
+            {submitError && (
+              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 font-body text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-4">
               <button
                 type="button"
                 onClick={handlePrev}
-                disabled={step <= 1}
+                disabled={step <= 1 || isSubmitting}
                 className="px-6 py-3 font-body text-sm font-bold uppercase tracking-wide text-[#6b7280] disabled:opacity-40"
               >
                 Sebelumnya
@@ -90,13 +130,17 @@ export function QuestionnaireStepClient({ step }: Props) {
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={!canGoNext}
+                disabled={!canGoNext || isSubmitting}
                 className={cn(
                   primaryGoldCtaClassSoftDisabled(),
                   "rounded px-10 py-4 font-heading text-sm font-extrabold uppercase tracking-widest shadow-sm",
                 )}
               >
-                {step >= total ? "Selesai" : "Pertanyaan berikutnya"}
+                {isSubmitting
+                  ? "Menyimpan…"
+                  : step >= total
+                    ? "Selesai"
+                    : "Pertanyaan berikutnya"}
               </button>
             </div>
           </div>

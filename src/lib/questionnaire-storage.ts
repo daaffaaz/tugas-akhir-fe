@@ -1,8 +1,9 @@
-import {
-  QUESTIONNAIRE_STORAGE_KEY,
-  QUESTIONNAIRE_TOTAL,
-} from "@/lib/questionnaire-data";
+import { QUESTIONNAIRE_STORAGE_KEY } from "@/lib/questionnaire-data";
+import type { ApiQuestion, QuestionnaireAnswer } from "@/lib/api/questionnaire";
 
+/**
+ * Stored as { [questionUUID]: "A" | "B" | "C" | ... }
+ */
 export type StoredAnswers = Record<string, string>;
 
 export function loadAnswers(): StoredAnswers {
@@ -20,13 +21,30 @@ export function loadAnswers(): StoredAnswers {
   return {};
 }
 
-export function saveAnswer(stepIndex: string, optionId: string) {
+export function saveAnswer(questionId: string, optionKey: string): void {
   if (typeof window === "undefined") return;
   const prev = loadAnswers();
-  prev[stepIndex] = optionId;
+  prev[questionId] = optionKey;
   localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(prev));
 }
 
-export function getTotalSteps() {
-  return QUESTIONNAIRE_TOTAL;
+export function clearAnswers(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(QUESTIONNAIRE_STORAGE_KEY);
+}
+
+/**
+ * Builds the submission payload expected by POST /api/users/questionnaire/.
+ * Only includes questions that have a stored answer.
+ */
+export function buildSubmissionPayload(
+  questions: ApiQuestion[],
+): QuestionnaireAnswer[] {
+  const answers = loadAnswers();
+  return questions
+    .filter((q) => answers[q.id] !== undefined)
+    .map((q) => ({
+      question_id: q.id,
+      answer_option: answers[q.id],
+    }));
 }
