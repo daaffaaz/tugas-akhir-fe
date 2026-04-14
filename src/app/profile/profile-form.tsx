@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
+import { useAuth } from "@/context/AuthContext";
 import {
   getProfile,
   getPreferences,
@@ -218,7 +220,14 @@ function ProfileSkeleton() {
 // ---------------------------------------------------------------------------
 
 export function ProfileForm() {
+  const router = useRouter();
+  const { signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleLogout() {
+    signOut();
+    router.push("/login");
+  }
 
   // --- Backend-managed fields ---
   const [fullName, setFullName] = useState("");
@@ -397,29 +406,54 @@ export function ProfileForm() {
             onChange={handleAvatarChange}
           />
         </div>
-        <div>
-          {profileLoading ? (
-            <ProfileSkeleton />
-          ) : profileError ? (
-            <p className="font-body text-sm font-semibold text-red-500">
-              {profileError}
-            </p>
-          ) : (
-            <>
-              <h1 className="font-heading text-3xl font-extrabold tracking-tight text-[#1f2937]">
-                {fullName || "—"}
-              </h1>
-              <p className="mt-1 flex items-center gap-2 font-body text-sm text-muted">
-                <span className="inline-block size-3 rounded-full bg-gold/40" />
-                {email}
+        <div className="flex flex-1 flex-wrap items-start justify-between gap-4">
+          <div>
+            {profileLoading ? (
+              <ProfileSkeleton />
+            ) : profileError ? (
+              <p className="font-body text-sm font-semibold text-red-500">
+                {profileError}
               </p>
-            </>
-          )}
-          {avatarError && (
-            <p className="mt-2 font-body text-xs font-semibold text-red-500">
-              {avatarError}
-            </p>
-          )}
+            ) : (
+              <>
+                <h1 className="font-heading text-3xl font-extrabold tracking-tight text-[#1f2937]">
+                  {fullName || "—"}
+                </h1>
+                <p className="mt-1 flex items-center gap-2 font-body text-sm text-muted">
+                  <span className="inline-block size-3 rounded-full bg-gold/40" />
+                  {email}
+                </p>
+              </>
+            )}
+            {avatarError && (
+              <p className="mt-2 font-body text-xs font-semibold text-red-500">
+                {avatarError}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-2 rounded border border-[#e5e7eb] bg-white px-4 py-2 font-body text-sm font-bold text-[#374151] shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M17 16l4-4m0 0l-4-4m4 4H7"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Keluar
+          </button>
         </div>
       </section>
 
