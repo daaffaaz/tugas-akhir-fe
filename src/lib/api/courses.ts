@@ -73,6 +73,66 @@ const MOCK_CATALOG: CatalogCourse[] = [
     thumbnailUrl:
       "https://www.figma.com/api/mcp/asset/501d1299-df6f-4b5c-8608-57b80d1ab43f",
   },
+  {
+    id: "cat-7",
+    title: "Docker Mastery: with Kubernetes +Swarm from a Docker Captain",
+    instructor: "Bret Fisher",
+    platform: "udemy",
+    rating: 4.6,
+    reviewCount: 42000,
+    thumbnailUrl:
+      "https://www.figma.com/api/mcp/asset/3dcba359-1a00-4d41-a2e8-d866a9f3f23e",
+  },
+  {
+    id: "cat-8",
+    title: "Site Reliability Engineering: Measuring and Managing Reliability",
+    instructor: "Google Cloud",
+    platform: "coursera",
+    rating: 4.5,
+    reviewCount: 2100,
+    thumbnailUrl:
+      "https://www.figma.com/api/mcp/asset/1c6dbcc7-d0f0-4b33-a24a-4e7d2f256ce8",
+  },
+  {
+    id: "cat-9",
+    title: "ICEI Linux Administration Practicum",
+    instructor: "ICEI",
+    platform: "icei",
+    rating: 4.3,
+    reviewCount: 900,
+    thumbnailUrl:
+      "https://www.figma.com/api/mcp/asset/28a5eb82-ecc7-4a52-b244-ea9cfa80093c",
+  },
+  {
+    id: "cat-10",
+    title: "Apache Kafka Series - Learn Apache Kafka for Beginners",
+    instructor: "Stephane Maarek",
+    platform: "udemy",
+    rating: 4.7,
+    reviewCount: 33000,
+    thumbnailUrl:
+      "https://www.figma.com/api/mcp/asset/48fd74e3-317a-49d4-905c-0597f3c1033f",
+  },
+  {
+    id: "cat-11",
+    title: "Cloud Architecture with GCP — Design Patterns",
+    instructor: "Coursera Project Network",
+    platform: "coursera",
+    rating: 4.2,
+    reviewCount: 4100,
+    thumbnailUrl:
+      "https://www.figma.com/api/mcp/asset/c412f371-bb2d-4eaa-9d0c-456f3ac01e09",
+  },
+  {
+    id: "cat-12",
+    title: "Network Security & Zero Trust Fundamentals",
+    instructor: "ICEI Security Lab",
+    platform: "icei",
+    rating: 4.4,
+    reviewCount: 1500,
+    thumbnailUrl:
+      "https://www.figma.com/api/mcp/asset/75d3f2b8-7278-43e5-9fa3-8adb30660232",
+  },
 ];
 
 /** Suggestions shown in Add Course dialog (catalog tab) */
