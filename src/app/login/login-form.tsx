@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/context/AuthContext";
-import { login } from "@/lib/api/auth";
+import { login, loginWithGoogle } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { getProfile } from "@/lib/api/profile";
 import { setTokens } from "@/lib/auth-storage";
@@ -30,6 +31,7 @@ export function LoginForm() {
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -50,7 +52,7 @@ export function LoginForm() {
           tokens.access,
           tokens.refresh,
         );
-        router.push("/");
+        router.push("/learning-path");
       } catch {
         // Questionnaire not yet completed — sign in with minimal info.
         signIn({ id: "", email, full_name: "" }, tokens.access, tokens.refresh);
@@ -64,6 +66,43 @@ export function LoginForm() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleGoogleSuccess(response: CredentialResponse) {
+    const idToken = response.credential;
+    if (!idToken) {
+      setError("Google token tidak valid. Silakan coba lagi.");
+      return;
+    }
+    setError(null);
+    setGoogleSubmitting(true);
+    try {
+      const result = await loginWithGoogle(idToken);
+      try {
+        const profile = await getProfile();
+        signIn(
+          { id: profile.id, email: profile.email, full_name: profile.full_name },
+          result.access,
+          result.refresh,
+        );
+        router.push("/learning-path");
+      } catch {
+        signIn(
+          { id: result.id, email: result.email, full_name: result.full_name },
+          result.access,
+          result.refresh,
+        );
+        router.push("/questionnaire");
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Google Sign-In gagal. Silakan coba lagi.",
+      );
+    } finally {
+      setGoogleSubmitting(false);
     }
   }
 
@@ -185,22 +224,41 @@ export function LoginForm() {
             <div className="h-px flex-1 bg-border-soft" />
           </div>
 
-          <button
-            type="button"
-            className="flex w-full items-center justify-center gap-2 rounded border border-border-soft bg-white py-[17px] transition hover:bg-[#fafafa]"
-          >
-            <Image
-              src={imgGoogle}
-              alt=""
-              width={33}
-              height={33}
-              className="size-[33px]"
-              unoptimized
-            />
-            <span className="font-body text-sm font-bold text-dark">
-              Google
-            </span>
-          </button>
+          <div className="flex w-full flex-col items-center gap-3 rounded border border-border-soft bg-white px-4 py-4">
+            <div className="flex items-center justify-center gap-2">
+              <Image
+                src={imgGoogle}
+                alt=""
+                width={33}
+                height={33}
+                className="size-[33px]"
+                unoptimized
+              />
+              <span className="font-body text-sm font-bold text-dark">
+                Google
+              </span>
+            </div>
+            {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google Sign-In gagal. Silakan coba lagi.")}
+                text="continue_with"
+                size="large"
+                theme="outline"
+                shape="rectangular"
+                width="320"
+              />
+            ) : (
+              <span className="font-body text-xs text-muted">
+                NEXT_PUBLIC_GOOGLE_CLIENT_ID belum dikonfigurasi.
+              </span>
+            )}
+            {googleSubmitting && (
+              <span className="font-body text-xs text-muted">
+                Memproses login Google...
+              </span>
+            )}
+          </div>
         </form>
 
         <p className="flex flex-wrap items-center justify-center gap-1 text-center font-body text-sm font-medium text-muted-2">

@@ -20,14 +20,52 @@ export type QuestionnaireAnswer = {
   answer_option: string;
 };
 
+type QuestionsApiResponse =
+  | ApiQuestion[]
+  | {
+      next?: string | null;
+      results?: ApiQuestion[];
+    };
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+function toPath(urlOrPath: string): string {
+  if (urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")) {
+    const u = new URL(urlOrPath);
+    return `${u.pathname}${u.search}`;
+  }
+  return urlOrPath;
+}
+
 /**
  * Fetches all questionnaire questions from the public API.
  * Results are cached server-side for 1 hour via Next.js extended fetch.
  */
 export async function getQuestions(): Promise<ApiQuestion[]> {
-  return apiFetch<ApiQuestion[]>("/api/questions/", {
+  const first = await apiFetch<QuestionsApiResponse>("/api/questions/", {
     next: { revalidate: 3600 },
   } as RequestInit);
+
+  if (Array.isArray(first)) return first;
+  if (!first || !Array.isArray(first.results)) return [];
+
+  const all = [...first.results];
+  let nextUrl = first.next ?? null;
+
+  while (nextUrl) {
+    const path = toPath(nextUrl);
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      next: { revalidate: 3600 },
+    });
+    if (!response.ok) break;
+    const page = (await response.json()) as QuestionsApiResponse;
+    if (!page || Array.isArray(page) || !Array.isArray(page.results)) break;
+    all.push(...page.results);
+    nextUrl = page.next ?? null;
+  }
+
+  return all;
 }
 
 /**

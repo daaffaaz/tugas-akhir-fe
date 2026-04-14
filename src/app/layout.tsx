@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter, Manrope } from "next/font/google";
+import { GoogleOAuthAppProvider } from "@/components/auth/GoogleOAuthAppProvider";
 import { siteConfig } from "@/config/site";
 import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
@@ -35,8 +36,10 @@ export default function RootLayout({
       className={`${inter.variable} ${manrope.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="font-body flex min-h-full flex-col">
+        <GoogleOAuthAppProvider>
           <AuthProvider>{children}</AuthProvider>
-        </body>
+        </GoogleOAuthAppProvider>
+      </body>
     </html>
   );
 }

@@ -26,10 +26,11 @@ export function QuestionnaireStepClient({ step, questions }: Props) {
   const router = useRouter();
   const total = questions.length;
   const question = questions[step - 1];
+  const questionId = question?.id;
 
   const [selectedKey, setSelectedKey] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return loadAnswers()[question.id] ?? null;
+    if (typeof window === "undefined" || !questionId) return null;
+    return loadAnswers()[questionId] ?? null;
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,10 +38,11 @@ export function QuestionnaireStepClient({ step, questions }: Props) {
 
   const onSelect = useCallback(
     (optionKey: string) => {
+      if (!questionId) return;
       setSelectedKey(optionKey);
-      saveAnswer(question.id, optionKey);
+      saveAnswer(questionId, optionKey);
     },
-    [question.id],
+    [questionId],
   );
 
   const canGoNext = Boolean(selectedKey);
@@ -55,7 +57,7 @@ export function QuestionnaireStepClient({ step, questions }: Props) {
         const payload = buildSubmissionPayload(questions);
         await submitQuestionnaire(payload);
         clearAnswers();
-        router.push("/");
+        router.push("/learning-path");
       } catch (err) {
         setSubmitError(
           err instanceof ApiError
@@ -78,11 +80,11 @@ export function QuestionnaireStepClient({ step, questions }: Props) {
 
   const options = useMemo(
     () =>
-      Object.entries(question.options_json).map(([key, label]) => ({
+      Object.entries(question?.options_json ?? {}).map(([key, label]) => ({
         key,
         label,
       })),
-    [question.options_json],
+    [question?.options_json],
   );
 
   if (!question) return null;

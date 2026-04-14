@@ -39,6 +39,13 @@ export async function register(
   });
 }
 
+export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/api/auth/google/", {
+    method: "POST",
+    body: { id_token: idToken },
+  });
+}
+
 export async function refreshAccessToken(
   refresh: string,
 ): Promise<{ access: string }> {
