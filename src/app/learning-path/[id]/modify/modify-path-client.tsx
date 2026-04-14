@@ -29,6 +29,7 @@ export function ModifyPathClient({ initial }: Props) {
   );
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const title = initial.title;
   const courseCount = courses.length;
@@ -41,18 +42,22 @@ export function ModifyPathClient({ initial }: Props) {
   const dirty =
     JSON.stringify(courses) !== JSON.stringify(baseline);
 
-  function move(index: number, dir: -1 | 1) {
-    const next = index + dir;
-    if (next < 0 || next >= courses.length) return;
-    const copy = [...courses];
-    const tmp = copy[index]!;
-    copy[index] = copy[next]!;
-    copy[next] = tmp;
-    setCourses(reorderIds(copy));
-  }
-
   function removeAt(index: number) {
     setCourses((c) => reorderIds(c.filter((_, i) => i !== index)));
+  }
+
+  function moveById(sourceId: string, targetId: string) {
+    if (sourceId === targetId) return;
+    setCourses((prev) => {
+      const sourceIndex = prev.findIndex((c) => c.id === sourceId);
+      const targetIndex = prev.findIndex((c) => c.id === targetId);
+      if (sourceIndex < 0 || targetIndex < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(sourceIndex, 1);
+      if (!moved) return prev;
+      next.splice(targetIndex, 0, moved);
+      return reorderIds(next);
+    });
   }
 
   async function onSave() {
@@ -119,7 +124,15 @@ export function ModifyPathClient({ initial }: Props) {
             {courses.map((course, index) => {
               const isFirst = index === 0;
               return (
-                <div key={course.id} className="relative flex gap-6">
+                <div
+                  key={course.id}
+                  className="relative flex gap-6"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (draggingId) moveById(draggingId, course.id);
+                    setDraggingId(null);
+                  }}
+                >
                   <div className="flex w-12 shrink-0 flex-col items-center pt-5">
                     <div
                       className={cn(
@@ -132,30 +145,27 @@ export function ModifyPathClient({ initial }: Props) {
                       {String(course.order).padStart(2, "0")}
                     </div>
                   </div>
-                  <div className="relative z-[1] flex min-w-0 flex-1 items-center justify-between gap-4 rounded border border-[#e5e7eb] bg-white p-5 shadow-sm">
+                  <div
+                    className={cn(
+                      "relative z-[1] flex min-w-0 flex-1 items-center justify-between gap-4 rounded border border-[#e5e7eb] bg-white p-5 shadow-sm transition-colors",
+                      draggingId === course.id && "border-gold bg-gold-light/40",
+                    )}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggingId(course.id);
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData("text/plain", course.id);
+                    }}
+                    onDragEnd={() => setDraggingId(null)}
+                  >
                     <div className="flex min-w-0 flex-1 items-center gap-4">
                       <div className="flex flex-col items-center gap-0.5 text-[#9ca3af]">
-                        <span className="select-none" title="Urutkan">
+                        <span
+                          className="cursor-grab select-none active:cursor-grabbing"
+                          title="Tarik untuk ubah urutan"
+                        >
                           <GripIcon />
                         </span>
-                        <button
-                          type="button"
-                          aria-label="Naik"
-                          className="rounded px-1 text-[10px] hover:bg-grey-bg disabled:opacity-30"
-                          disabled={index === 0}
-                          onClick={() => move(index, -1)}
-                        >
-                          &#9650;
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Turun"
-                          className="rounded px-1 text-[10px] hover:bg-grey-bg disabled:opacity-30"
-                          disabled={index === courses.length - 1}
-                          onClick={() => move(index, 1)}
-                        >
-                          &#9660;
-                        </button>
                       </div>
                       <input
                         type="checkbox"
@@ -223,8 +233,9 @@ export function ModifyPathClient({ initial }: Props) {
                 </p>
               </div>
               <p className="mt-3 font-body text-sm font-medium leading-relaxed text-[#1c1c1c]">
-                Modul dapat diubah urutan dengan tombol di samping handle. Semua
-                perubahan akan disimpan sebagai draf sebelum path disimpan.
+                Modul dapat diubah urutan dengan drag and drop pada handle di
+                sebelah kiri. Semua perubahan akan disimpan sebagai draf sebelum
+                path disimpan.
               </p>
             </div>
           </div>

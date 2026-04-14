@@ -43,7 +43,7 @@ export function AddCourseDialog({ open, onClose, onAdd }: Props) {
   const [manualTitle, setManualTitle] = useState("");
   const [manualUrl, setManualUrl] = useState("");
   const [manualDuration, setManualDuration] = useState("2 jam");
-  const [manualLevel, setManualLevel] = useState("Foundations");
+  const [manualLevel, setManualLevel] = useState("Beginner");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -86,7 +86,7 @@ export function AddCourseDialog({ open, onClose, onAdd }: Props) {
       open={open}
       onClose={onClose}
       hideTitleRow
-      className="max-w-[520px]"
+      className="h-[720px] max-w-[520px]"
       panelClassName="!overflow-hidden flex min-h-0 flex-1 flex-col p-0"
     >
       <div className="flex shrink-0 items-start justify-between px-8 pb-4 pt-8">
@@ -261,11 +261,15 @@ export function AddCourseDialog({ open, onClose, onAdd }: Props) {
                 <label className="mb-2 block px-1 font-body text-[11px] font-bold uppercase tracking-[0.1em] text-[#1f2937]">
                   Level
                 </label>
-                <input
+                <select
                   value={manualLevel}
                   onChange={(e) => setManualLevel(e.target.value)}
                   className="w-full rounded border border-[#d1d5db] bg-white px-4 py-3 font-body text-sm outline-none ring-gold/30 focus:ring-2"
-                />
+                >
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advance">Advance</option>
+                </select>
               </div>
             </div>
           </div>
