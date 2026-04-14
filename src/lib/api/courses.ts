@@ -2,140 +2,175 @@ import type {
   CatalogCourse,
   CatalogFilters,
   CoursePlatform,
+  CoursesResult,
   ManualCourseDraft,
 } from "@/lib/types";
-import { defaultCatalogFilters } from "@/lib/types";
+import { apiFetch } from "./client";
 
-const MOCK_DELAY_MS = 300;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-function delay(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+type SortKey = "relevance" | "rating" | "reviews";
+
+/** Raw course object returned by GET /api/courses/ */
+type RawCourse = {
+  id: string;
+  title: string;
+  instructor: string;
+  rating: number;
+  reviews_count: number;
+  thumbnail_url: string;
+  url: string;
+  price: number | null;
+  level: string;
+  platform: {
+    id: string;
+    name: string;
+    base_url: string;
+  };
+};
+
+/** DRF page-number pagination envelope */
+type PagedResponse<T> = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function normalisePlatform(name: string): Exclude<CoursePlatform, "all"> {
+  const lower = name.toLowerCase();
+  if (lower === "udemy") return "udemy";
+  if (lower === "coursera") return "coursera";
+  if (lower === "icei") return "icei";
+  if (lower === "youtube") return "youtube";
+  // fall back to the raw lowercase value; CourseCatalogCard handles unknown
+  return lower as Exclude<CoursePlatform, "all">;
 }
 
-const MOCK_CATALOG: CatalogCourse[] = [
-  {
-    id: "cat-1",
-    title: "Ultimate AWS Certified Solutions Architect Associate",
-    instructor: "Stephane Maarek",
-    platform: "udemy",
-    rating: 4.7,
-    reviewCount: 24000,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/c412f371-bb2d-4eaa-9d0c-456f3ac01e09",
-  },
-  {
-    id: "cat-2",
-    title: "Google Cloud Professional Cloud Architect",
-    instructor: "Google Cloud Training",
-    platform: "coursera",
-    rating: 4.6,
-    reviewCount: 12000,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/75d3f2b8-7278-43e5-9fa3-8adb30660232",
-  },
-  {
-    id: "cat-3",
-    title: "Kubernetes for the Absolute Beginners",
-    instructor: "Mumshad Mannambeth",
-    platform: "udemy",
-    rating: 4.8,
-    reviewCount: 89000,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/9e152699-67fa-4399-abaf-0eef94591b74",
-  },
-  {
-    id: "cat-4",
-    title: "ICEI Cloud Native Bootcamp",
-    instructor: "ICEI",
-    platform: "icei",
-    rating: 4.5,
-    reviewCount: 3200,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/93866fed-f1b8-4153-afbf-350c5f1fc1ab",
-  },
-  {
-    id: "cat-5",
-    title: "DevOps CI/CD with GitHub Actions",
-    instructor: "TechWorld with Nana",
-    platform: "youtube",
-    rating: 4.4,
-    reviewCount: 5600,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/e45068b3-c0e0-4392-a0c9-07816cfac99b",
-  },
-  {
-    id: "cat-6",
-    title: "Terraform Associate Certification",
-    instructor: "Bryan Krausen",
-    platform: "udemy",
-    rating: 4.7,
-    reviewCount: 15000,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/501d1299-df6f-4b5c-8608-57b80d1ab43f",
-  },
-  {
-    id: "cat-7",
-    title: "Docker Mastery: with Kubernetes +Swarm from a Docker Captain",
-    instructor: "Bret Fisher",
-    platform: "udemy",
-    rating: 4.6,
-    reviewCount: 42000,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/3dcba359-1a00-4d41-a2e8-d866a9f3f23e",
-  },
-  {
-    id: "cat-8",
-    title: "Site Reliability Engineering: Measuring and Managing Reliability",
-    instructor: "Google Cloud",
-    platform: "coursera",
-    rating: 4.5,
-    reviewCount: 2100,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/1c6dbcc7-d0f0-4b33-a24a-4e7d2f256ce8",
-  },
-  {
-    id: "cat-9",
-    title: "ICEI Linux Administration Practicum",
-    instructor: "ICEI",
-    platform: "icei",
-    rating: 4.3,
-    reviewCount: 900,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/28a5eb82-ecc7-4a52-b244-ea9cfa80093c",
-  },
-  {
-    id: "cat-10",
-    title: "Apache Kafka Series - Learn Apache Kafka for Beginners",
-    instructor: "Stephane Maarek",
-    platform: "udemy",
-    rating: 4.7,
-    reviewCount: 33000,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/48fd74e3-317a-49d4-905c-0597f3c1033f",
-  },
-  {
-    id: "cat-11",
-    title: "Cloud Architecture with GCP — Design Patterns",
-    instructor: "Coursera Project Network",
-    platform: "coursera",
-    rating: 4.2,
-    reviewCount: 4100,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/c412f371-bb2d-4eaa-9d0c-456f3ac01e09",
-  },
-  {
-    id: "cat-12",
-    title: "Network Security & Zero Trust Fundamentals",
-    instructor: "ICEI Security Lab",
-    platform: "icei",
-    rating: 4.4,
-    reviewCount: 1500,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/75d3f2b8-7278-43e5-9fa3-8adb30660232",
-  },
-];
+function toFrontend(raw: RawCourse): CatalogCourse {
+  return {
+    id: raw.id,
+    title: raw.title,
+    instructor: raw.instructor,
+    platform: normalisePlatform(raw.platform.name),
+    rating: raw.rating,
+    reviewCount: raw.reviews_count,
+    thumbnailUrl: raw.thumbnail_url,
+    url: raw.url,
+    price: raw.price,
+    level: raw.level,
+  };
+}
 
-/** Suggestions shown in Add Course dialog (catalog tab) */
+function buildOrdering(sort: SortKey): string | null {
+  if (sort === "rating") return "-rating";
+  if (sort === "reviews") return "-reviews_count";
+  return null; // relevance → omit param, backend defaults to title asc
+}
+
+function buildParams(
+  query: string,
+  platform: CoursePlatform,
+  filters: CatalogFilters,
+  sort: SortKey,
+  page: number,
+  pageSize: number,
+): URLSearchParams {
+  const p = new URLSearchParams();
+
+  p.set("page", String(page));
+  p.set("page_size", String(pageSize));
+
+  if (query.trim()) p.set("search", query.trim());
+
+  if (platform !== "all") {
+    // Backend uses iexact on platform__name; match the capitalised DB values
+    const nameMap: Record<string, string> = {
+      udemy: "Udemy",
+      coursera: "Coursera",
+      icei: "ICEI",
+      youtube: "YouTube",
+    };
+    p.set("platform_name", nameMap[platform] ?? platform);
+  }
+
+  const ordering = buildOrdering(sort);
+  if (ordering) p.set("ordering", ordering);
+
+  // --- Price ---
+  if (filters.priceFree && !filters.pricePaid) {
+    p.set("max_price", "0");
+  } else if (filters.pricePaid && !filters.priceFree) {
+    p.set("min_price", "1");
+  }
+  // both or neither → no price filter
+
+  // --- Rating (lowest selected threshold wins) ---
+  if (filters.rating45 && !filters.rating40) {
+    p.set("min_rating", "4.5");
+  } else if (filters.rating40) {
+    p.set("min_rating", "4.0");
+  }
+
+  // --- Duration (merge all selected buckets into outer min/max range) ---
+  // Buckets: 0-2, 3-6, 7-16, 17+
+  const durationBuckets: Array<{ min: number; max: number | null; active: boolean }> = [
+    { min: 0, max: 2, active: filters.duration02 },
+    { min: 3, max: 6, active: filters.duration36 },
+    { min: 7, max: 16, active: filters.duration716 },
+    { min: 17, max: null, active: filters.duration17plus },
+  ];
+  const activeBuckets = durationBuckets.filter((b) => b.active);
+  if (activeBuckets.length > 0) {
+    const minDur = Math.min(...activeBuckets.map((b) => b.min));
+    const maxDur = activeBuckets.some((b) => b.max === null)
+      ? null
+      : Math.max(...activeBuckets.map((b) => b.max as number));
+    p.set("min_duration", String(minDur));
+    if (maxDur !== null) p.set("max_duration", String(maxDur));
+  }
+
+  // --- Difficulty (comma-separated; backend ORs them) ---
+  const difficultyMap = [
+    { active: filters.difficultyBeginner, value: "Beginner" },
+    { active: filters.difficultyIntermediate, value: "Intermediate" },
+    { active: filters.difficultyAdvanced, value: "Advanced" },
+  ];
+  const levels = difficultyMap.filter((d) => d.active).map((d) => d.value);
+  if (levels.length > 0) p.set("difficulty_level", levels.join(","));
+
+  return p;
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export async function getCourses(
+  query: string,
+  platform: CoursePlatform,
+  filters: CatalogFilters,
+  sort: SortKey = "relevance",
+  page: number = 1,
+  pageSize: number = 6,
+): Promise<CoursesResult> {
+  const params = buildParams(query, platform, filters, sort, page, pageSize);
+  const data = await apiFetch<PagedResponse<RawCourse>>(
+    `/api/courses/?${params.toString()}`,
+  );
+  return {
+    courses: data.results.map(toFrontend),
+    total: data.count,
+  };
+}
+
+/** Suggestions shown in the Add Course dialog (catalog tab) — still static */
 export const MOCK_DIALOG_COURSES: CatalogCourse[] = [
   {
     id: "dlg-1",
@@ -159,62 +194,10 @@ export const MOCK_DIALOG_COURSES: CatalogCourse[] = [
   },
 ];
 
-function matchesPlatform(
-  course: CatalogCourse,
-  platform: CoursePlatform,
-): boolean {
-  if (platform === "all") return true;
-  return course.platform === platform;
-}
-
-function matchesFilters(course: CatalogCourse, filters: CatalogFilters): boolean {
-  const anyRating = filters.rating45 || filters.rating40;
-  if (anyRating) {
-    if (filters.rating45 && filters.rating40) {
-      if (course.rating < 4.0) return false;
-    } else if (filters.rating45 && course.rating < 4.5) return false;
-    else if (filters.rating40 && course.rating < 4.0) return false;
-  }
-  const anyDifficulty =
-    filters.difficultyBeginner ||
-    filters.difficultyIntermediate ||
-    filters.difficultyAdvanced;
-  if (anyDifficulty) {
-    /* Stub: infer difficulty from rating for demo data */
-    const beginner = course.rating < 4.5;
-    const advanced = course.rating >= 4.7;
-    const intermediate = !beginner && !advanced;
-    const ok =
-      (filters.difficultyBeginner && beginner) ||
-      (filters.difficultyIntermediate && intermediate) ||
-      (filters.difficultyAdvanced && advanced);
-    if (!ok) return false;
-  }
-  return true;
-}
-
-export async function getCourses(
-  query: string,
-  platform: CoursePlatform,
-  filters: CatalogFilters = defaultCatalogFilters,
-): Promise<CatalogCourse[]> {
-  await delay(MOCK_DELAY_MS);
-  const q = query.trim().toLowerCase();
-  return MOCK_CATALOG.filter(
-    (c) =>
-      matchesPlatform(c, platform) &&
-      matchesFilters(c, filters) &&
-      (q === "" ||
-        c.title.toLowerCase().includes(q) ||
-        c.instructor.toLowerCase().includes(q)),
-  );
-}
-
 export async function addCourseManual(
   pathId: string,
   draft: ManualCourseDraft,
 ): Promise<void> {
-  await delay(MOCK_DELAY_MS);
   if (typeof window !== "undefined") {
     console.info("[courses stub] manual add", { pathId, draft });
   }

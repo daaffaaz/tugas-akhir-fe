@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CatalogCourse, CatalogFilters, CoursePlatform } from "@/lib/types";
 import { defaultCatalogFilters } from "@/lib/types";
 import { getCourses } from "@/lib/api/courses";
@@ -22,13 +22,6 @@ const TABS: { id: PlatformTab; label: string }[] = [
 function mapTabToPlatform(tab: PlatformTab): CoursePlatform {
   if (tab === "all") return "all";
   return tab;
-}
-
-function sortCourses(list: CatalogCourse[], sort: SortKey): CatalogCourse[] {
-  const copy = [...list];
-  if (sort === "rating") copy.sort((a, b) => b.rating - a.rating);
-  else if (sort === "reviews") copy.sort((a, b) => b.reviewCount - a.reviewCount);
-  return copy;
 }
 
 function FilterSection({
@@ -70,34 +63,61 @@ function CheckRow({
   );
 }
 
+function CourseCardSkeleton() {
+  return (
+    <div className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm animate-pulse">
+      <div className="h-40 w-full bg-[#f3f4f6]" />
+      <div className="flex flex-1 flex-col p-5 gap-3">
+        <div className="h-4 rounded bg-[#e5e7eb] w-full" />
+        <div className="h-4 rounded bg-[#e5e7eb] w-3/4" />
+        <div className="h-3 rounded bg-[#f3f4f6] w-1/2 mt-1" />
+        <div className="h-8 rounded bg-[#f3f4f6] mt-auto" />
+      </div>
+    </div>
+  );
+}
+
 export function CourseCatalogView() {
   const [tab, setTab] = useState<PlatformTab>("all");
-  const [query, setQuery] = useState("Cloud Architecture");
+  const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("relevance");
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<CatalogFilters>(defaultCatalogFilters);
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const platform = mapTabToPlatform(tab);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
     let cancelled = false;
-    void getCourses(query, platform, filters).then((data) => {
-      if (!cancelled) setCourses(data);
-    });
+    setIsLoading(true);
+    setError(null);
+
+    getCourses(query, platform, filters, sort, page, PAGE_SIZE)
+      .then((result) => {
+        if (!cancelled) {
+          setCourses(result.courses);
+          setTotal(result.total);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Gagal memuat kursus.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
     return () => {
       cancelled = true;
     };
-  }, [query, platform, filters]);
-
-  const sorted = useMemo(() => sortCourses(courses, sort), [courses, sort]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pageItems = sorted.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
+  }, [query, platform, filters, sort, page]);
 
   function patchFilters(patch: Partial<CatalogFilters>) {
     setFilters((f) => ({ ...f, ...patch }));
@@ -220,17 +240,23 @@ export function CourseCatalogView() {
             </div>
             <div className="flex flex-col gap-2 md:items-end">
               <p className="font-body text-sm text-muted">
-                Menampilkan{" "}
-                <span className="font-bold text-dark">{sorted.length}</span>{" "}
-                hasil
-                {query.trim() ? (
+                {isLoading ? (
+                  <span className="inline-block h-4 w-24 animate-pulse rounded bg-[#e5e7eb]" />
+                ) : (
                   <>
-                    {" "}
-                    untuk &apos;
-                    <span className="font-semibold text-dark">{query.trim()}</span>
-                    &apos;
+                    Menampilkan{" "}
+                    <span className="font-bold text-dark">{total}</span>{" "}
+                    hasil
+                    {query.trim() ? (
+                      <>
+                        {" "}
+                        untuk &apos;
+                        <span className="font-semibold text-dark">{query.trim()}</span>
+                        &apos;
+                      </>
+                    ) : null}
                   </>
-                ) : null}
+                )}
               </p>
               <label className="flex items-center gap-2 font-body text-sm text-muted">
                 Urutkan
@@ -250,13 +276,30 @@ export function CourseCatalogView() {
             </div>
           </div>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {pageItems.map((c) => (
-              <CourseCatalogCard key={c.id} course={c} />
-            ))}
-          </div>
+          {error ? (
+            <div className="mt-12 rounded-lg border border-red-200 bg-red-50 px-6 py-8 text-center">
+              <p className="font-body text-sm font-semibold text-red-600">{error}</p>
+              <button
+                type="button"
+                onClick={() => setPage((p) => p)}
+                className="mt-3 font-body text-sm font-bold text-dark underline underline-offset-4"
+              >
+                Coba lagi
+              </button>
+            </div>
+          ) : (
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {isLoading
+                ? Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <CourseCardSkeleton key={i} />
+                  ))
+                : courses.map((c) => (
+                    <CourseCatalogCard key={c.id} course={c} />
+                  ))}
+            </div>
+          )}
 
-          {sorted.length === 0 ? (
+          {!isLoading && !error && courses.length === 0 ? (
             <p className="mt-12 text-center font-body text-sm text-muted">
               Tidak ada kursus yang cocok dengan filter ini.
             </p>
@@ -270,7 +313,7 @@ export function CourseCatalogView() {
               <button
                 type="button"
                 className="rounded border border-[#e5e7eb] px-3 py-2 text-sm font-bold text-muted hover:bg-grey-bg disabled:opacity-40"
-                disabled={currentPage <= 1}
+                disabled={page <= 1 || isLoading}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 &larr;
@@ -280,9 +323,10 @@ export function CourseCatalogView() {
                   key={n}
                   type="button"
                   onClick={() => setPage(n)}
+                  disabled={isLoading}
                   className={cn(
-                    "min-w-[2.5rem] rounded px-3 py-2 text-sm font-bold",
-                    n === currentPage
+                    "min-w-[2.5rem] rounded px-3 py-2 text-sm font-bold disabled:opacity-60",
+                    n === page
                       ? "bg-gold text-dark"
                       : "border border-[#e5e7eb] text-muted hover:bg-grey-bg",
                   )}
@@ -293,7 +337,7 @@ export function CourseCatalogView() {
               <button
                 type="button"
                 className="rounded border border-[#e5e7eb] px-3 py-2 text-sm font-bold text-muted hover:bg-grey-bg disabled:opacity-40"
-                disabled={currentPage >= totalPages}
+                disabled={page >= totalPages || isLoading}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               >
                 &rarr;
