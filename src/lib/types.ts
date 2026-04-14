@@ -69,6 +69,15 @@ export type CatalogCourse = {
   rating: number;
   reviewCount: number;
   thumbnailUrl: string;
+  /** Course page URL on the source platform */
+  url?: string;
+  price?: number | null;
+  level?: string;
+};
+
+export type CoursesResult = {
+  courses: CatalogCourse[];
+  total: number;
 };
 
 export type CatalogFilters = {
