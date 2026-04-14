@@ -32,12 +32,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = getAccessToken();
-    const storedUser = getUser();
-    if (token && storedUser) {
-      setUserState(storedUser);
-    }
-    setIsLoading(false);
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      const token = getAccessToken();
+      const storedUser = getUser();
+      setUserState(token && storedUser ? storedUser : null);
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const signIn = useCallback(

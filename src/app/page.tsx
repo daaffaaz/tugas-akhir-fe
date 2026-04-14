@@ -17,8 +17,6 @@ const imgIconPeople =
   "https://www.figma.com/api/mcp/asset/263d8da6-c439-4221-aaed-6e0474c4b964";
 const imgIconBrain =
   "https://www.figma.com/api/mcp/asset/f5f46ef1-bdb2-4e32-93cb-5bc5370a8b02";
-const imgArrowLink =
-  "https://www.figma.com/api/mcp/asset/88725177-4476-4caa-90db-323b4390aea6";
 
 export default function Home() {
   return (
