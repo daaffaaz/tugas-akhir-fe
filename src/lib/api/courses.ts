@@ -1,6 +1,8 @@
 import type {
   CatalogCourse,
   CatalogFilters,
+  CatalogSortDirection,
+  CatalogSortKey,
   CoursePlatform,
   CoursesResult,
   ManualCourseDraft,
@@ -10,8 +12,6 @@ import { apiFetch } from "./client";
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-type SortKey = "relevance" | "rating" | "reviews";
 
 /** Raw course object returned by GET /api/courses/ */
 type RawCourse = {
@@ -68,17 +68,23 @@ function toFrontend(raw: RawCourse): CatalogCourse {
   };
 }
 
-function buildOrdering(sort: SortKey): string | null {
-  if (sort === "rating") return "-rating";
-  if (sort === "reviews") return "-reviews_count";
-  return null; // relevance → omit param, backend defaults to title asc
+function buildOrdering(
+  sort: CatalogSortKey,
+  direction: CatalogSortDirection,
+): string | null {
+  if (sort === "relevance") return null;
+  const prefix = direction === "desc" ? "-" : "";
+  if (sort === "rating") return `${prefix}rating`;
+  if (sort === "reviews") return `${prefix}reviews_count`;
+  return null;
 }
 
 function buildParams(
   query: string,
   platform: CoursePlatform,
   filters: CatalogFilters,
-  sort: SortKey,
+  sort: CatalogSortKey,
+  sortDirection: CatalogSortDirection,
   page: number,
   pageSize: number,
 ): URLSearchParams {
@@ -100,7 +106,7 @@ function buildParams(
     p.set("platform_name", nameMap[platform] ?? platform);
   }
 
-  const ordering = buildOrdering(sort);
+  const ordering = buildOrdering(sort, sortDirection);
   if (ordering) p.set("ordering", ordering);
 
   // --- Price ---
@@ -156,11 +162,20 @@ export async function getCourses(
   query: string,
   platform: CoursePlatform,
   filters: CatalogFilters,
-  sort: SortKey = "relevance",
+  sort: CatalogSortKey = "relevance",
   page: number = 1,
   pageSize: number = 6,
+  sortDirection: CatalogSortDirection = "desc",
 ): Promise<CoursesResult> {
-  const params = buildParams(query, platform, filters, sort, page, pageSize);
+  const params = buildParams(
+    query,
+    platform,
+    filters,
+    sort,
+    sortDirection,
+    page,
+    pageSize,
+  );
   const data = await apiFetch<PagedResponse<RawCourse>>(
     `/api/courses/?${params.toString()}`,
   );

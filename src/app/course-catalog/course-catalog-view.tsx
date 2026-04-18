@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { CatalogCourse, CatalogFilters, CoursePlatform } from "@/lib/types";
+import type {
+  CatalogCourse,
+  CatalogFilters,
+  CatalogSortDirection,
+  CatalogSortKey,
+  CoursePlatform,
+} from "@/lib/types";
 import { defaultCatalogFilters } from "@/lib/types";
 import { getCourses } from "@/lib/api/courses";
 import { CourseCatalogCard } from "@/components/course/CourseCatalogCard";
 import { cn } from "@/lib/utils";
 
 type PlatformTab = "all" | "udemy" | "coursera" | "icei";
-type SortKey = "relevance" | "rating" | "reviews";
 
 const PAGE_SIZE = 6;
 
@@ -80,7 +85,9 @@ function CourseCardSkeleton() {
 export function CourseCatalogView() {
   const [tab, setTab] = useState<PlatformTab>("all");
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortKey>("relevance");
+  const [sort, setSort] = useState<CatalogSortKey>("relevance");
+  const [sortDirection, setSortDirection] =
+    useState<CatalogSortDirection>("desc");
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<CatalogFilters>(defaultCatalogFilters);
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
@@ -96,7 +103,7 @@ export function CourseCatalogView() {
     setIsLoading(true);
     setError(null);
 
-    getCourses(query, platform, filters, sort, page, PAGE_SIZE)
+    getCourses(query, platform, filters, sort, page, PAGE_SIZE, sortDirection)
       .then((result) => {
         if (!cancelled) {
           setCourses(result.courses);
@@ -117,7 +124,7 @@ export function CourseCatalogView() {
     return () => {
       cancelled = true;
     };
-  }, [query, platform, filters, sort, page]);
+  }, [query, platform, filters, sort, sortDirection, page]);
 
   function patchFilters(patch: Partial<CatalogFilters>) {
     setFilters((f) => ({ ...f, ...patch }));
@@ -258,21 +265,39 @@ export function CourseCatalogView() {
                   </>
                 )}
               </p>
-              <label className="flex items-center gap-2 font-body text-sm text-muted">
-                Urutkan
-                <select
-                  value={sort}
-                  onChange={(e) => {
-                    setSort(e.target.value as SortKey);
-                    setPage(1);
-                  }}
-                  className="rounded-lg border border-[#e5e7eb] bg-white px-3 py-2 font-body text-sm font-semibold text-dark"
-                >
-                  <option value="relevance">Paling relevan</option>
-                  <option value="rating">Rating tertinggi</option>
-                  <option value="reviews">Ulasan terbanyak</option>
-                </select>
-              </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                <label className="flex items-center gap-2 font-body text-sm text-muted">
+                  Urutkan
+                  <select
+                    value={sort}
+                    onChange={(e) => {
+                      setSort(e.target.value as CatalogSortKey);
+                      setPage(1);
+                    }}
+                    className="rounded-lg border border-[#e5e7eb] bg-white px-3 py-2 font-body text-sm font-semibold text-dark"
+                  >
+                    <option value="relevance">Paling relevan</option>
+                    <option value="rating">Rating</option>
+                    <option value="reviews">Jumlah ulasan</option>
+                  </select>
+                </label>
+                {sort !== "relevance" ? (
+                  <label className="flex items-center gap-2 font-body text-sm text-muted">
+                    Arah
+                    <select
+                      value={sortDirection}
+                      onChange={(e) => {
+                        setSortDirection(e.target.value as CatalogSortDirection);
+                        setPage(1);
+                      }}
+                      className="rounded-lg border border-[#e5e7eb] bg-white px-3 py-2 font-body text-sm font-semibold text-dark"
+                    >
+                      <option value="desc">Menurun (tinggi / terbanyak dulu)</option>
+                      <option value="asc">Menaik (rendah / tersedikit dulu)</option>
+                    </select>
+                  </label>
+                ) : null}
+              </div>
             </div>
           </div>
 

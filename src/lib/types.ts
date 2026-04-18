@@ -80,6 +80,12 @@ export type CoursesResult = {
   total: number;
 };
 
+/** Catalog list sort field (maps to API `ordering`) */
+export type CatalogSortKey = "relevance" | "rating" | "reviews";
+
+/** For `rating` / `reviews`; ignored when sort is `relevance` */
+export type CatalogSortDirection = "desc" | "asc";
+
 export type CatalogFilters = {
   /** When empty, treated as "all" */
   priceFree: boolean;
