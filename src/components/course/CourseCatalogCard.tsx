@@ -45,13 +45,15 @@ export function CourseCatalogCard({ course }: { course: CatalogCourse }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm">
       <div className="relative h-40 w-full bg-grey-bg">
-        <Image
-          src={course.thumbnailUrl}
-          alt=""
-          fill
-          className="object-cover"
-          sizes="(max-width:768px) 100vw, 33vw"
-        />
+        {course.thumbnailUrl ? (
+          <Image
+            src={course.thumbnailUrl}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width:768px) 100vw, 33vw"
+          />
+        ) : null}
         <span className="absolute right-3 top-3 rounded bg-white/95 px-2 py-1 font-heading text-[10px] font-extrabold uppercase tracking-wide text-dark shadow-sm">
           {platformLabel(course.platform)}
         </span>
