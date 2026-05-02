@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createLearningPath } from "@/lib/api/learning-path";
+import { postGenerateRoadmap } from "@/lib/api/rag";
 import { primaryGoldCtaClass, primaryCtaIconHover } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
@@ -19,14 +19,23 @@ export function CreatePathForm() {
   const router = useRouter();
   const [topic, setTopic] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!topic.trim()) return;
+    if (!topic.trim() || topic.trim().length < 3) return;
     setBusy(true);
+    setError(null);
     try {
-      const id = await createLearningPath(topic.trim());
-      router.push(`/learning-path/${id}/modify`);
+      const res = await postGenerateRoadmap({ topic: topic.trim(), count: 15 });
+      // Navigate to modify page with the AI-generated path ID
+      router.push(`/learning-path/${res.id}/modify`);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Gagal membuat learning path. Coba lagi.",
+      );
     } finally {
       setBusy(false);
     }
@@ -82,14 +91,25 @@ export function CreatePathForm() {
         </div>
 
         <div className="flex justify-center pt-2">
+          {error && (
+            <div className="mb-4 w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-center pt-2">
           <button
             type="submit"
-            disabled={busy || !topic.trim()}
-            className={primaryGoldCtaClass(
-              "group relative inline-flex min-w-[220px] items-center gap-2 rounded-full px-10 py-4 font-heading text-lg font-extrabold shadow-[0px_10px_15px_-3px_rgba(255,206,0,0.2)] disabled:opacity-50",
+            disabled={busy || topic.trim().length < 3}
+            className={cn(
+              primaryGoldCtaClass(
+                "group relative inline-flex min-w-[220px] items-center gap-2 rounded-full px-10 py-4 font-heading text-lg font-extrabold shadow-[0px_10px_15px_-3px_rgba(255,206,0,0.2)]",
+              ),
+              (busy || topic.trim().length < 3) && "cursor-not-allowed",
             )}
           >
-            Buat path
+            {busy ? "Generating..." : "Buat path"}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imgSparkle}

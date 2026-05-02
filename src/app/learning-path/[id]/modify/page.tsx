@@ -1,10 +1,9 @@
-import { getLearningPathDetail } from "@/lib/api/learning-path";
+import { getRagLearningPath } from "@/lib/api/rag";
 import { ModifyPathClient } from "./modify-path-client";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function ModifyLearningPathPage({ params }: Props) {
   const { id } = await params;
-  const detail = await getLearningPathDetail(id);
-  return <ModifyPathClient initial={detail} />;
+  return <ModifyPathClient pathId={id} />;
 }

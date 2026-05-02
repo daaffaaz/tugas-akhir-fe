@@ -148,3 +148,96 @@ export interface LearningPathState {
   isLoading: boolean;
   error: string | null;
 }
+
+// ─── Learning Path Edit — Request Types ───────────────────────────────────────
+
+export interface RegeneratePathRequest {
+  additional_context?: string;
+  keep_courses?: boolean;
+}
+
+export interface ReplaceCourseRequest {
+  additional_context?: string;
+  count?: number;
+}
+
+export interface ApplyReplacementRequest {
+  new_course_id: string;
+  replacement_reason?: string;
+}
+
+export interface AddCourseToPathRequest {
+  course_id: string;
+  position?: number;
+}
+
+// ─── Learning Path Edit — Response Types ─────────────────────────────────────
+
+export interface ReplacementCandidate {
+  course_id: string;
+  title: string;
+  instructor: string;
+  platform: string;
+  level: string;
+  rating: number | null;
+  price: number | null;
+  currency: string;
+  duration: string;
+  thumbnail_url: string;
+  url: string;
+  score: number; // AI evaluation score 0–1
+  faiss_score: number; // Vector search score 0–1
+  match_reason: string;
+  best_for: string;
+  potential_concerns: string;
+}
+
+export interface ReplaceCourseResponse {
+  original_course_id: string;
+  original_course_title: string;
+  replacement_reason_summary: string;
+  candidates: ReplacementCandidate[];
+}
+
+export interface SimilarCourse {
+  course_id: string;
+  title: string;
+  instructor: string | null;
+  platform: string;
+  level: string;
+  rating: number | null;
+  reviews_count: number | null;
+  price: number | null;
+  currency: string;
+  duration: string;
+  thumbnail_url: string;
+  url: string;
+  relevance_score: number;
+  faiss_score: number;
+}
+
+export interface SimilarCoursesResponse {
+  original_course_id: string;
+  original_course_title: string;
+  topic: string;
+  courses: SimilarCourse[];
+}
+
+export interface LearningPathListItem {
+  id: string;
+  title: string;
+  topic_input: string;
+  is_saved: boolean;
+  total_courses: number;
+  completed_courses: number;
+  progress_percentage: number;
+  regenerate_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegeneratePathResponse extends RagLearningPathResponse {
+  _rag_meta: RagMeta & {
+    completed_courses_preserved?: number;
+  };
+}

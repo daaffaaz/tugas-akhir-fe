@@ -178,7 +178,7 @@ export function AppBar() {
                 </Link>
                 <div className="mx-4 my-1 border-t border-[#e5e7eb]" />
                 <Link
-                  href="/ai/learning-path"
+                  href="/learning-path/create"
                   className="flex items-center gap-3 px-4 py-3 font-body text-sm text-[#4a4a4a] hover:bg-[#fafafa]"
                   onClick={() => setAiDropdownOpen(false)}
                 >
