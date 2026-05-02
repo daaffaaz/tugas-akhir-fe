@@ -17,11 +17,9 @@ import {
 import { cn } from "@/lib/utils";
 
 const imgGoogle =
-  "https://www.figma.com/api/mcp/asset/ea27a6b3-3212-4992-b58d-02d34fad9622";
-const imgEye =
-  "https://www.figma.com/api/mcp/asset/99786749-3964-4884-a3de-d513d6e897a6";
-const imgArrow =
-  "https://www.figma.com/api/mcp/asset/84c7f18e-14ba-4f2c-b070-3de9f3b4dbc7";
+  "/images/ea27a6b3-3212-4992-b58d-02d34fad9622.png";
+const imgEye = "/images/99786749-3964-4884-a3de-d513d6e897a6.png";
+const imgArrow = "/images/84c7f18e-14ba-4f2c-b070-3de9f3b4dbc7.png";
 
 export function LoginForm() {
   const router = useRouter();

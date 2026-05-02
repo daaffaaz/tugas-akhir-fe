@@ -7,13 +7,13 @@ import { primaryGoldCtaClass, primaryCtaIconHover } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
 const imgSearch =
-  "https://www.figma.com/api/mcp/asset/2d0d95a7-d81f-490b-9213-52f1556a0ad9";
+  "/images/2d0d95a7-d81f-490b-9213-52f1556a0ad9.png";
 const imgMap =
-  "https://www.figma.com/api/mcp/asset/166379ed-ce0d-4b7c-9fd1-8bea30e4ec1b";
+  "/images/166379ed-ce0d-4b7c-9fd1-8bea30e4ec1b.png";
 const imgCheck =
-  "https://www.figma.com/api/mcp/asset/91811ac3-575e-4e53-94ed-fb369ec58c4e";
+  "/images/91811ac3-575e-4e53-94ed-fb369ec58c4e.png";
 const imgSparkle =
-  "https://www.figma.com/api/mcp/asset/96085196-990e-4460-8a32-d3721f3f3537";
+  "/images/96085196-990e-4460-8a32-d3721f3f3537.png";
 
 export function CreatePathForm() {
   const router = useRouter();

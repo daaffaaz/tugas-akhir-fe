@@ -1,5 +1,4 @@
-const bookIcon =
-  "https://www.figma.com/api/mcp/asset/84c7f18e-14ba-4f2c-b070-3de9f3b4dbc7";
+const bookIcon = null;
 
 type AuthBrandPanelProps = {
   badgeLabel: string;

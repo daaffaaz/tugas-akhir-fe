@@ -6,17 +6,17 @@ import { primaryCtaIconHover, primaryGoldCtaBase } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
 const imgHero =
-  "https://www.figma.com/api/mcp/asset/3b36dc2d-b5f6-4066-94e1-512d303ebc3e";
+  "/images/3b36dc2d-b5f6-4066-94e1-512d303ebc3e.png";
 const imgFeatureBg =
-  "https://www.figma.com/api/mcp/asset/05419962-4c46-4b83-9470-8bf68ef24a78";
+  "/images/05419962-4c46-4b83-9470-8bf68ef24a78.png";
 const imgArrowCta =
-  "https://www.figma.com/api/mcp/asset/466f9fb2-2fd0-4c5a-8ee1-e103564f260b";
+  "/images/466f9fb2-2fd0-4c5a-8ee1-e103564f260b.png";
 const imgIconShield =
-  "https://www.figma.com/api/mcp/asset/ae50cdc2-5b98-4827-9984-2c5788e5179a";
+  "/images/ae50cdc2-5b98-4827-9984-2c5788e5179a.png";
 const imgIconPeople =
-  "https://www.figma.com/api/mcp/asset/263d8da6-c439-4221-aaed-6e0474c4b964";
+  "/images/263d8da6-c439-4221-aaed-6e0474c4b964.png";
 const imgIconBrain =
-  "https://www.figma.com/api/mcp/asset/f5f46ef1-bdb2-4e32-93cb-5bc5370a8b02";
+  "/images/f5f46ef1-bdb2-4e32-93cb-5bc5370a8b02.png";
 
 export default function Home() {
   return (

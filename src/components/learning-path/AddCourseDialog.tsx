@@ -6,14 +6,10 @@ import { MOCK_DIALOG_COURSES } from "@/lib/api/courses";
 import { Dialog } from "@/components/ui/Dialog";
 import { cn } from "@/lib/utils";
 
-const imgTabSearch =
-  "https://www.figma.com/api/mcp/asset/34b3f69c-0c0d-4aff-8130-22473c3187e9";
-const imgTabList =
-  "https://www.figma.com/api/mcp/asset/8c6569c3-876e-4ebc-b7e3-cedff6a6a86e";
 const imgSearch =
-  "https://www.figma.com/api/mcp/asset/c2472632-02c8-4e45-8654-ecd1a1c64dbd";
+  "/images/2d0d95a7-d81f-490b-9213-52f1556a0ad9.png";
 const imgChevron =
-  "https://www.figma.com/api/mcp/asset/9b741f72-8518-4039-bfcd-c5a43779f5ce";
+  "/images/466f9fb2-2fd0-4c5a-8ee1-e103564f260b.png";
 
 type Tab = "catalog" | "manual";
 
@@ -123,7 +119,7 @@ export function AddCourseDialog({ open, onClose, onAdd }: Props) {
             )}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgTabSearch} alt="" width={14} height={14} />
+            <img src={imgSearch} alt="" width={14} height={14} />
             Pilih dari katalog
           </button>
           <button
@@ -137,7 +133,7 @@ export function AddCourseDialog({ open, onClose, onAdd }: Props) {
             )}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgTabList} alt="" width={14} height={14} />
+            <img src={imgChevron} alt="" width={14} height={14} />
             Tambah manual
           </button>
         </div>
