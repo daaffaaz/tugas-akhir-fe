@@ -66,6 +66,8 @@ export type LearningPathCourseItem = {
   readings?: string;
   assignments?: string;
   tags?: string[];
+  /** Whether the course has been marked as completed */
+  completed?: boolean;
 };
 
 export type LearningPathDetail = {

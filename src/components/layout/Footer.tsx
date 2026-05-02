@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const socialGlobe =
-  "https://www.figma.com/api/mcp/asset/b7201899-0003-4598-9f5e-1af229528bab";
+  "/images/b7201899-0003-4598-9f5e-1af229528bab.png";
 const socialShare =
-  "https://www.figma.com/api/mcp/asset/ab0a2ee4-2697-4578-acba-184c55e4f210";
+  "/images/ab0a2ee4-2697-4578-acba-184c55e4f210.png";
 
 export function Footer() {
   return (

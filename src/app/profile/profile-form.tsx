@@ -380,7 +380,7 @@ export function ProfileForm() {
 
   const avatarSrc =
     avatarUrl ??
-    "https://www.figma.com/api/mcp/asset/670578d8-e120-42d5-b51a-63caa7234ecf";
+    "/images/670578d8-e120-42d5-b51a-63caa7234ecf.png";
 
   const isFormDisabled = profileLoading || prefsLoading;
 

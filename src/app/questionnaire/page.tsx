@@ -4,12 +4,9 @@ import { AppBar } from "@/components/layout/AppBar";
 import { primaryCtaIconHover, primaryGoldCtaBase } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
-const imgArrow =
-  "https://www.figma.com/api/mcp/asset/70103432-6d64-43c3-a4ba-18e20eaad088";
-const imgClock =
-  "https://www.figma.com/api/mcp/asset/1c44f2dc-eed4-4d26-8e87-5ffc404e3bbd";
-const imgShield =
-  "https://www.figma.com/api/mcp/asset/f3f42237-404e-4f0e-95e4-f437aa22a158";
+const imgArrow = "/images/84c7f18e-14ba-4f2c-b070-3de9f3b4dbc7.png";
+const imgClock = "/images/1c44f2dc-eed4-4d26-8e87-5ffc404e3bbd.png";
+const imgShield = "/images/f3f42237-404e-4f0e-95e4-f437aa22a158.png";
 
 export default function QuestionnaireIntroPage() {
   return (

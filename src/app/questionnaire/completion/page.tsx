@@ -16,7 +16,7 @@ export default function QuestionnaireCompletionPage() {
             <div className="mb-8 flex size-[96px] items-center justify-center">
               <div className="size-[64px]">
                 <img
-                  src="https://www.figma.com/api/mcp/asset/9d4b7b36-3536-4712-b122-154d52528ab2"
+                  src="/images/9d4b7b36-3536-4712-b122-154d52528ab2.png"
                   alt="Success"
                   className="size-full object-contain"
                 />

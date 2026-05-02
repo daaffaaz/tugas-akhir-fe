@@ -53,6 +53,14 @@ export function ModifyPathClient({ initial }: Props) {
     if (idx >= 0) removeAt(idx);
   }
 
+  function handleToggleComplete(course: LearningPathCourseItem) {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.id === course.id ? { ...c, completed: !c.completed } : c,
+      ),
+    );
+  }
+
   function moveById(sourceId: string, targetId: string) {
     if (sourceId === targetId) return;
     setCourses((prev) => {
@@ -148,6 +156,7 @@ export function ModifyPathClient({ initial }: Props) {
                     setDraggingId(null);
                   }}
                   onDelete={handleDelete}
+                  onToggleComplete={handleToggleComplete}
                 />
               );
             })}

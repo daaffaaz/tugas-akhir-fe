@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const imgUserProfile =
-  "https://www.figma.com/api/mcp/asset/6f86e31f-7eaa-42bd-88e3-a103780b30a3";
+  "/images/6f86e31f-7eaa-42bd-88e3-a103780b30a3.png";
 
 function BellIcon({ className }: { className?: string }) {
   return (

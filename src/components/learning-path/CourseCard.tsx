@@ -15,6 +15,7 @@ type Props = {
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: () => void;
   onDelete?: (course: LearningPathCourseItem) => void;
+  onToggleComplete?: (course: LearningPathCourseItem) => void;
 };
 
 export function CourseCard({
@@ -26,10 +27,12 @@ export function CourseCard({
   onDragOver,
   onDrop,
   onDelete,
+  onToggleComplete,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const hasDetails = !!course.thumbnailUrl;
+  const isCompleted = course.completed ?? false;
 
   return (
     <div
@@ -41,12 +44,14 @@ export function CourseCard({
         <div
           className={cn(
             "flex size-12 items-center justify-center rounded border text-xs font-extrabold",
-            isFirst
-              ? "border-gold bg-gold text-[#1c1c1c]"
-              : "border-[#ededed] bg-white text-[#9ca3af]",
+            isCompleted
+              ? "border-green-500 bg-green-500 text-white"
+              : isFirst
+                ? "border-gold bg-gold text-[#1c1c1c]"
+                : "border-[#ededed] bg-white text-[#9ca3af]",
           )}
         >
-          {String(course.order).padStart(2, "0")}
+          {isCompleted ? <CheckIcon size={16} /> : String(course.order).padStart(2, "0")}
         </div>
       </div>
 
@@ -233,9 +238,15 @@ export function CourseCard({
                 <div className="mt-4 flex justify-end border-t border-[#e5e7eb] pt-4">
                   <button
                     type="button"
-                    className="rounded border-2 border-gold bg-gold px-6 py-3 font-heading text-sm font-bold text-[#121212] shadow-sm hover:border-[#121212] hover:bg-[#121212] hover:text-gold"
+                    onClick={() => onToggleComplete?.(course)}
+                    className={cn(
+                      "rounded border-2 px-6 py-3 font-heading text-sm font-bold shadow-sm",
+                      isCompleted
+                        ? "border-[#d1d5db] bg-white text-[#6b7280] hover:border-red-400 hover:bg-red-50 hover:text-red-600"
+                        : "border-gold bg-gold text-[#121212] hover:border-[#121212] hover:bg-[#121212] hover:text-gold",
+                    )}
                   >
-                    Tandai Selesai
+                    {isCompleted ? "Batal selesai" : "Tandai Selesai"}
                   </button>
                 </div>
               </div>
@@ -378,15 +389,15 @@ function BookIcon({ className }: { className?: string }) {
   );
 }
 
-function CheckIcon({ className }: { className?: string }) {
+function CheckIcon({ size = 20, className = "" }: { size?: number; className?: string }) {
   return (
     <svg
-      width="20"
-      height="20"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="3"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}

@@ -194,8 +194,7 @@ export const MOCK_DIALOG_COURSES: CatalogCourse[] = [
     platform: "coursera",
     rating: 4.8,
     reviewCount: 1200,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/b89e2854-dc34-4906-8a78-4cff5886ca88",
+    thumbnailUrl: "",
   },
   {
     id: "dlg-2",
@@ -204,8 +203,7 @@ export const MOCK_DIALOG_COURSES: CatalogCourse[] = [
     platform: "coursera",
     rating: 3.2,
     reviewCount: 890,
-    thumbnailUrl:
-      "https://www.figma.com/api/mcp/asset/34b3f69c-0c0d-4aff-8130-22473c3187e9",
+    thumbnailUrl: "",
   },
 ];
 

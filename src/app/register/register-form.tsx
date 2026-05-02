@@ -13,9 +13,8 @@ import { primaryGoldCtaClass } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
 const imgGoogle =
-  "https://www.figma.com/api/mcp/asset/65e94bb4-ce48-4d68-b394-b14c68102d34";
-const imgEye =
-  "https://www.figma.com/api/mcp/asset/3f25ef02-70e8-4e66-be7b-8429dfa51909";
+  "/images/ea27a6b3-3212-4992-b58d-02d34fad9622.png";
+const imgEye = "/images/99786749-3964-4884-a3de-d513d6e897a6.png";
 
 export function RegisterForm() {
   const router = useRouter();
