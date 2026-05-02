@@ -1,4 +1,29 @@
-const bookIcon = null;
+function BookIcon() {
+  return (
+    <svg
+      width="22"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"
+        stroke="#1c1c1c"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+        stroke="#1c1c1c"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 type AuthBrandPanelProps = {
   badgeLabel: string;
@@ -18,8 +43,7 @@ export function AuthBrandPanel({ badgeLabel, variant }: AuthBrandPanelProps) {
         </div>
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded bg-gold">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bookIcon} alt="" className="h-4 w-[22px]" />
+            <BookIcon />
           </div>
           <span className="font-heading text-2xl font-extrabold tracking-tight">
             PersonaLearn
@@ -62,8 +86,7 @@ export function AuthBrandPanel({ badgeLabel, variant }: AuthBrandPanelProps) {
     >
       <div className="relative z-10 flex items-center gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded bg-gold">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={bookIcon} alt="" className="h-4 w-[22px]" />
+          <BookIcon />
         </div>
         <span className="font-heading text-2xl font-extrabold tracking-tight">
           PersonaLearn
