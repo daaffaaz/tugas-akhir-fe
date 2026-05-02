@@ -11,6 +11,8 @@ import {
   AddCourseDialog,
   type AddCourseResult,
 } from "@/components/learning-path/AddCourseDialog";
+import { CourseCard } from "@/components/learning-path/CourseCard";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +46,11 @@ export function ModifyPathClient({ initial }: Props) {
 
   function removeAt(index: number) {
     setCourses((c) => reorderIds(c.filter((_, i) => i !== index)));
+  }
+
+  function handleDelete(course: LearningPathCourseItem) {
+    const idx = courses.findIndex((c) => c.id === course.id);
+    if (idx >= 0) removeAt(idx);
   }
 
   function moveById(sourceId: string, targetId: string) {
@@ -124,75 +131,24 @@ export function ModifyPathClient({ initial }: Props) {
             {courses.map((course, index) => {
               const isFirst = index === 0;
               return (
-                <div
+                <CourseCard
                   key={course.id}
-                  className="relative flex gap-6"
+                  course={course}
+                  isFirst={isFirst}
+                  isDragging={draggingId === course.id}
+                  onDragStart={(e) => {
+                    setDraggingId(course.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", course.id);
+                  }}
+                  onDragEnd={() => setDraggingId(null)}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => {
                     if (draggingId) moveById(draggingId, course.id);
                     setDraggingId(null);
                   }}
-                >
-                  <div className="flex w-12 shrink-0 flex-col items-center pt-5">
-                    <div
-                      className={cn(
-                        "flex size-12 items-center justify-center rounded border text-xs font-extrabold",
-                        isFirst
-                          ? "border-gold bg-gold text-[#1c1c1c]"
-                          : "border-[#ededed] bg-white text-[#9ca3af]",
-                      )}
-                    >
-                      {String(course.order).padStart(2, "0")}
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      "relative z-[1] flex min-w-0 flex-1 items-center justify-between gap-4 rounded border border-[#e5e7eb] bg-white p-5 shadow-sm transition-colors",
-                      draggingId === course.id && "border-gold bg-gold-light/40",
-                    )}
-                    draggable
-                    onDragStart={(e) => {
-                      setDraggingId(course.id);
-                      e.dataTransfer.effectAllowed = "move";
-                      e.dataTransfer.setData("text/plain", course.id);
-                    }}
-                    onDragEnd={() => setDraggingId(null)}
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-4">
-                      <div className="flex flex-col items-center gap-0.5 text-[#9ca3af]">
-                        <span
-                          className="cursor-grab select-none active:cursor-grabbing"
-                          title="Tarik untuk ubah urutan"
-                        >
-                          <GripIcon />
-                        </span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="size-5 shrink-0 rounded border-[#d1d5db] accent-gold"
-                        aria-label={`Pilih ${course.title}`}
-                      />
-                      <div className="min-w-0">
-                        <p className="font-body text-lg font-bold text-[#1c1c1c]">
-                          {course.title}
-                        </p>
-                        <p className="mt-1 flex flex-wrap items-center gap-2 font-heading text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#9ca3af]">
-                          <span>{course.level}</span>
-                          <span className="size-1 rounded-full bg-[#e5e7eb]" />
-                          <span>{course.duration}</span>
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeAt(index)}
-                      className="shrink-0 rounded p-2 text-[#9ca3af] hover:bg-red-50 hover:text-red-600"
-                      aria-label="Hapus kursus"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </div>
+                  onDelete={handleDelete}
+                />
               );
             })}
           </div>
@@ -213,17 +169,19 @@ export function ModifyPathClient({ initial }: Props) {
               <p className="font-heading text-[10px] font-extrabold uppercase tracking-[0.25em] text-[#9ca3af]">
                 Manajemen path
               </p>
-              <button
-                type="button"
-                disabled={busy || !dirty}
-                onClick={onSave}
-                className={primaryGoldCtaClass(
-                  "mt-6 flex w-full items-center justify-center gap-3 rounded px-4 py-4 font-heading text-xs font-extrabold uppercase tracking-widest",
-                )}
-              >
-                <SaveIcon />
-                Simpan perubahan
-              </button>
+              <Tooltip content="Simpan perubahan path belajar Anda" side="top">
+                <button
+                  type="button"
+                  disabled={busy || !dirty}
+                  onClick={onSave}
+                  className={primaryGoldCtaClass(
+                    "mt-6 flex w-full items-center justify-center gap-3 rounded px-4 py-4 font-heading text-xs font-extrabold uppercase tracking-widest",
+                  )}
+                >
+                  <SaveIcon />
+                  Simpan perubahan
+                </button>
+              </Tooltip>
             </div>
             <div className="rounded border border-[#e5e7eb] bg-gold-light p-8 shadow-sm">
               <div className="flex items-center gap-3">

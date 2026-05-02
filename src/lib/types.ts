@@ -52,6 +52,20 @@ export type LearningPathCourseItem = {
   title: string;
   level: string;
   duration: string;
+  /** Expanded view details (populated from catalog) */
+  instructor?: string;
+  rating?: number;
+  reviewCount?: number;
+  thumbnailUrl?: string;
+  price?: number | null;
+  description?: string;
+  aiInsight?: string;
+  whatYoullLearn?: string[];
+  totalHours?: string;
+  videoHours?: string;
+  readings?: string;
+  assignments?: string;
+  tags?: string[];
 };
 
 export type LearningPathDetail = {

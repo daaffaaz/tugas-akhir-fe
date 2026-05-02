@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 import { useAuth } from "@/context/AuthContext";
+import { Tooltip } from "@/components/ui/Tooltip";
 import {
   getProfile,
   getPreferences,
@@ -104,6 +105,49 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
     <label className="block px-1 pb-2 font-heading text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">
       {children}
     </label>
+  );
+}
+
+function FieldLabelWithTooltip({
+  children,
+  tooltip,
+}: {
+  children: React.ReactNode;
+  tooltip: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-1 pb-2">
+      <label className="font-heading text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">
+        {children}
+      </label>
+      <Tooltip content={tooltip} side="right">
+        <button
+          type="button"
+          className="flex size-4 items-center justify-center rounded-full bg-[#e5e7eb] text-[#6b7280] hover:bg-[#d1d5db]"
+          aria-label={`Info: ${tooltip}`}
+        >
+          <InfoIconInline />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function InfoIconInline() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </svg>
   );
 }
 
@@ -567,7 +611,9 @@ export function ProfileForm() {
                 </div>
               </div>
               <div>
-                <FieldLabel>Kemampuan Git</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Kemampuan menggunakan sistem version control Git untuk melacak perubahan kode">
+                Kemampuan Git
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.git_skill}
                   onChange={(v) => setPrefsField("git_skill", v as PrefsForm["git_skill"])}
@@ -580,7 +626,9 @@ export function ProfileForm() {
                 />
               </div>
               <div>
-                <FieldLabel>CLI / terminal</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Tingkat kenyamanan menggunakan command-line interface atau terminal">
+                CLI / terminal
+              </FieldLabelWithTooltip>
                 <SegmentedScale
                   value={prefs.cli_level}
                   onChange={(n) => setPrefsField("cli_level", n)}
@@ -589,7 +637,9 @@ export function ProfileForm() {
                 />
               </div>
               <div>
-                <FieldLabel>Programming logic</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Kemampuan memecahkan masalah logika pemrograman dan algoritma">
+                Programming logic
+              </FieldLabelWithTooltip>
                 <SegmentedScale
                   value={prefs.logic_level}
                   onChange={(n) => setPrefsField("logic_level", n)}
@@ -611,7 +661,9 @@ export function ProfileForm() {
             </h2>
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <FieldLabel>Alokasi per minggu</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Alokasi waktu belajar per minggu yang realistis untuk Anda">
+                Alokasi per minggu
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.weekly_hours}
                   onChange={(v) => setPrefsField("weekly_hours", v)}
@@ -694,7 +746,9 @@ export function ProfileForm() {
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <FieldLabel>Komposisi teori vs praktik</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Rasio antara belajar teori (konsep, dokumentasi) dan praktik (coding, proyek nyata)">
+                Komposisi teori vs praktik
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.theory_practice}
                   onChange={(v) =>
@@ -709,7 +763,9 @@ export function ProfileForm() {
                 />
               </div>
               <div>
-                <FieldLabel>Evaluasi favorit</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Metode evaluasi yang Anda sukai untuk mengukur pemahaman: kuis, tantangan coding, atau proyek">
+                Evaluasi favorit
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.evaluation_type}
                   onChange={(v) =>
@@ -735,7 +791,9 @@ export function ProfileForm() {
             </h2>
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <FieldLabel>Target role IT</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Peran IT yang ingin Anda capai sebagai Zielprofilschutz Ihrer Karriere">
+                Target role IT
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.target_role}
                   onChange={(v) =>
@@ -773,7 +831,9 @@ export function ProfileForm() {
             </h2>
             <div className="grid gap-6 md:grid-cols-3">
               <div>
-                <FieldLabel>RAM laptop</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Kapasitas RAM laptop Anda untuk menentukan course yang sesuai (editing video, VM, dll)">
+                RAM laptop
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.ram_gb}
                   onChange={(v) =>
@@ -788,7 +848,9 @@ export function ProfileForm() {
                 />
               </div>
               <div>
-                <FieldLabel>Kualitas internet</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Kualitas koneksi internet Anda untuk streaming video dan download course">
+                Kualitas internet
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.internet_quality}
                   onChange={(v) =>
@@ -806,7 +868,9 @@ export function ProfileForm() {
                 />
               </div>
               <div>
-                <FieldLabel>Budget tools</FieldLabel>
+                <FieldLabelWithTooltip tooltip="Estimasi budget bulanan untuk tools, course berbayar, dan ресурсes belajar">
+                Budget tools
+              </FieldLabelWithTooltip>
                 <Select
                   value={prefs.budget_idr}
                   onChange={(v) =>
