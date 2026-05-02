@@ -90,6 +90,26 @@ const PATH_DETAILS: Record<string, LearningPathDetail> = {
         title: "Introduction to Distributed Systems",
         level: "Foundations",
         duration: "2h 30m",
+        instructor: "Dr. Jane Smith",
+        rating: 4.8,
+        reviewCount: 2341,
+        thumbnailUrl:
+          "https://www.figma.com/api/mcp/asset/587944e9-addc-4aca-8f78-313412999fb4",
+        price: 49.99,
+        description:
+          "Learn the fundamental concepts of distributed systems, including replication, consistency, partition tolerance, and fault tolerance.",
+        aiInsight:
+          "This course provides the essential foundational concepts required for mastering backend scalability and distributed architectures.",
+        whatYoullLearn: [
+          "Understand CAP theorem and PACELC",
+          "Implement basic consensus algorithms",
+          "Design fault-tolerant architectures",
+        ],
+        totalHours: "12h total",
+        videoHours: "8h video",
+        readings: "14 readings",
+        assignments: "3 assignments",
+        tags: ["Architecture", "Backend", "System Design"],
       },
       {
         id: "c2",

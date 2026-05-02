@@ -57,7 +57,7 @@ export function QuestionnaireStepClient({ step, questions }: Props) {
         const payload = buildSubmissionPayload(questions);
         await submitQuestionnaire(payload);
         clearAnswers();
-        router.push("/learning-path");
+        router.push("/questionnaire/completion");
       } catch (err) {
         setSubmitError(
           err instanceof ApiError
