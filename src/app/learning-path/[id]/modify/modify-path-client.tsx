@@ -523,6 +523,16 @@ function AICourseRow({
 
       {/* Actions */}
       <div className="flex shrink-0 items-center gap-2">
+        {/* Detail link */}
+        <Tooltip content="Detail Kursus" side="top">
+          <Link
+            href={`/course-catalog/${course.course.id}`}
+            className="flex size-8 items-center justify-center rounded-lg border border-[#e5e7eb] text-[#9ca3af] hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
+          >
+            <InfoIcon />
+          </Link>
+        </Tooltip>
+
         {/* Toggle complete */}
         <Tooltip content={isCompleted ? "Undo Complete" : "Mark Complete"} side="top">
           <button
@@ -685,6 +695,16 @@ function ArrowIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0" aria-hidden>
       <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
   );
 }

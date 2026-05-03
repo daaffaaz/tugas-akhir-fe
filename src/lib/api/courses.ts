@@ -207,6 +207,34 @@ export const MOCK_DIALOG_COURSES: CatalogCourse[] = [
   },
 ];
 
+/** Full course detail returned by GET /api/courses/{id}/ */
+export type CourseDetail = {
+  id: string;
+  title: string;
+  instructor: string | null;
+  rating: number | string;
+  reviews_count: number | string;
+  price: number | string | null;
+  currency: string;
+  level: string;
+  description: string;
+  duration: string;
+  video_hours: number | string | null;
+  reading_count: number;
+  assignment_count: number;
+  what_you_learn: string;
+  tag: string;
+  url: string;
+  thumbnail_url: string | null;
+  platform: { id: string; name: string; base_url: string };
+  tags: string[];
+};
+
+/** GET /api/courses/{id}/ — fetch single course detail */
+export async function getCourseById(id: string): Promise<CourseDetail> {
+  return apiFetch<CourseDetail>(`/api/courses/${id}/`, { auth: true });
+}
+
 export async function addCourseManual(
   pathId: string,
   draft: ManualCourseDraft,
