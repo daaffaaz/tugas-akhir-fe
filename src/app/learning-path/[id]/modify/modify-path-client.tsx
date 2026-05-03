@@ -5,30 +5,52 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getRagLearningPath, toggleCourseComplete } from "@/lib/api/rag";
 import { QuestionnaireRequiredError } from "@/types/rag";
-import type { RagLearningPathResponse, LearningPathPhase, LearningPathCourse } from "@/types/rag";
+import type { RagLearningPathResponse, LearningPathCourse } from "@/types/rag";
 import { ReplaceCourseModal } from "@/components/learning-path/ReplaceCourseModal";
 import { RegeneratePathModal } from "@/components/learning-path/RegeneratePathModal";
 import { AddCourseToPathModal } from "@/components/learning-path/AddCourseToPathModal";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { AppBar } from "@/components/layout/AppBar";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
-type Props = {
-  pathId: string;
-};
+type Props = { pathId: string };
+
+interface AugmentedCourse extends LearningPathCourse {
+  phaseName?: string;
+  matchReason?: string;
+  learningObjectives?: string[];
+}
+
+function buildCourseList(path: RagLearningPathResponse): AugmentedCourse[] {
+  const phases = path.questionnaire_snapshot?.phases ?? [];
+  const phaseMap = new Map<string, { phaseName: string; matchReason: string; learningObjectives: string[] }>();
+  for (const phase of phases) {
+    for (const pc of phase.courses) {
+      phaseMap.set(pc.course_id, {
+        phaseName: phase.phase_name,
+        matchReason: pc.match_reason,
+        learningObjectives: phase.learning_objectives,
+      });
+    }
+  }
+  return [...path.courses]
+    .sort((a, b) => a.position - b.position)
+    .map((course) => {
+      const info = phaseMap.get(course.course.id) ?? phaseMap.get(course.id);
+      return { ...course, phaseName: info?.phaseName, matchReason: info?.matchReason, learningObjectives: info?.learningObjectives };
+    });
+}
 
 export function ModifyPathClient({ pathId }: Props) {
   const router = useRouter();
   const [path, setPath] = useState<RagLearningPathResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
 
-  // Modal states
-  const [replaceModal, setReplaceModal] = useState<{
-    open: boolean;
-    courseId: string;
-    courseTitle: string;
-  }>({ open: false, courseId: "", courseTitle: "" });
+  const [replaceModal, setReplaceModal] = useState<{ open: boolean; courseId: string; courseTitle: string }>({
+    open: false, courseId: "", courseTitle: "",
+  });
   const [regenerateModal, setRegenerateModal] = useState(false);
   const [addCourseModal, setAddCourseModal] = useState(false);
 
@@ -49,45 +71,29 @@ export function ModifyPathClient({ pathId }: Props) {
     }
   }
 
-  useEffect(() => {
-    loadPath();
-  }, [pathId]);
+  useEffect(() => { loadPath(); }, [pathId]);
 
   async function handleToggleComplete(courseId: string) {
     try {
       const res = await toggleCourseComplete(courseId);
-      // Update local state
       setPath((prev) => {
         if (!prev) return prev;
-        return {
-          ...prev,
-          courses: prev.courses.map((c) =>
-            c.id === courseId
-              ? { ...c, is_completed: res.is_completed }
-              : c,
-          ),
-        };
+        return { ...prev, courses: prev.courses.map((c) => c.id === courseId ? { ...c, is_completed: res.is_completed } : c) };
       });
-    } catch {
-      // Silently fail
-    }
+    } catch { /* silent */ }
   }
 
   async function handleDeleteCourse(courseId: string) {
     setPath((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        courses: prev.courses.filter((c) => c.id !== courseId),
-      };
+      return { ...prev, courses: prev.courses.filter((c) => c.id !== courseId) };
     });
-    // Refresh to get updated positions
     await loadPath();
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fdfdfd]">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
           <div className="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-[#e5e7eb] border-t-gold" />
           <p className="font-body text-sm text-[#9ca3af]">Memuat learning path...</p>
@@ -98,7 +104,7 @@ export function ModifyPathClient({ pathId }: Props) {
 
   if (error || !path) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fdfdfd]">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white">
         <p className="mb-4 font-body text-sm text-red-500">{error ?? "Path tidak ditemukan."}</p>
         <Link href="/learning-path" className={primaryGoldCtaClass("rounded-lg px-6 py-3 font-heading text-sm font-bold")}>
           &larr; Kembali ke Learning Path
@@ -107,195 +113,111 @@ export function ModifyPathClient({ pathId }: Props) {
     );
   }
 
-  const phases = path.questionnaire_snapshot?.phases ?? [];
-  const isEmpty = phases.length === 0;
+  const courses = buildCourseList(path);
+  const title = path.questionnaire_snapshot?.roadmap_title ?? path.title;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#fdfdfd] font-body text-dark">
+    <div className="flex min-h-screen flex-col bg-white font-body text-dark">
       <AppBar />
-      <div className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-10 md:px-8">
-        {/* Back nav */}
-        <nav className="mb-6">
-          <Link
-            href="/learning-path"
-            className="inline-flex items-center gap-2 font-body text-xs font-bold uppercase tracking-widest text-[#9ca3af] hover:text-dark"
-          >
-            <span aria-hidden>&larr;</span> Kembali
-          </Link>
-        </nav>
 
-        {/* Header */}
-        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <MapPinIcon />
-              <span className="font-body text-[10px] font-bold uppercase tracking-widest text-[#6b7280]">
-                AI Learning Path
+      <div className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8">
+        {/* Back nav */}
+        <Link
+          href="/learning-path"
+          className="mb-6 inline-flex items-center gap-2 font-body text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] hover:text-dark"
+        >
+          <ArrowLeftIcon /> Kembali
+        </Link>
+
+        <div className="mt-6 flex items-start gap-6">
+          {/* ── Left: course list ── */}
+          <div className="min-w-0 flex-1">
+            {/* Title row */}
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <h1 className="font-heading text-3xl font-extrabold tracking-tight text-dark">
+                {title}
+              </h1>
+              <span className="shrink-0 rounded bg-[#1c1c1c] px-3 py-1.5 font-heading text-xs font-bold uppercase tracking-widest text-white">
+                {courses.length} Courses
               </span>
             </div>
-            <h1 className="font-heading text-3xl font-extrabold tracking-tight text-dark md:text-4xl">
-              {path.questionnaire_snapshot?.roadmap_title ?? path.title}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-4 font-body text-sm text-[#6b7280]">
-              {path.questionnaire_snapshot?.total_duration_weeks && (
-                <span className="flex items-center gap-1">
-                  <ClockIcon /> ~{path.questionnaire_snapshot.total_duration_weeks} weeks
-                </span>
-              )}
-              {path.questionnaire_snapshot?.total_hours_estimated && (
-                <span className="flex items-center gap-1">
-                  <PlayIcon /> ~{path.questionnaire_snapshot.total_hours_estimated}h estimated
-                </span>
-              )}
-              {path.questionnaire_snapshot?.difficulty_curve && (
-                <span className="flex items-center gap-1">
-                  <ChartIcon /> {path.questionnaire_snapshot.difficulty_curve}
-                </span>
-              )}
-              <span className="rounded bg-[#f3f4f6] px-2 py-0.5 text-xs font-bold">
-                {path.courses.length} courses
-              </span>
+
+            {/* Course rows */}
+            <div className="space-y-3">
+              {courses.map((course, idx) => (
+                <CourseRow
+                  key={course.id}
+                  course={course}
+                  index={idx}
+                  expanded={expandedIdx === idx}
+                  onToggle={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+                  onDelete={() => handleDeleteCourse(course.id)}
+                  onToggleComplete={() => handleToggleComplete(course.id)}
+                  onReplace={() => setReplaceModal({ open: true, courseId: course.id, courseTitle: course.course.title })}
+                />
+              ))}
             </div>
+
+            {/* Add course */}
+            <button
+              type="button"
+              onClick={() => setAddCourseModal(true)}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#e5e7eb] bg-white py-4 font-heading text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] transition-colors hover:border-[#1c1c1c] hover:text-dark"
+            >
+              <PlusIcon /> Tambah Kursus
+            </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Tooltip content="Regenerate seluruh path" side="top">
+
+          {/* ── Right: sidebar ── */}
+          <div className="w-[260px] shrink-0 space-y-3">
+            {/* Manajemen Path */}
+            <div className="rounded-xl border border-[#e5e7eb] bg-white p-5">
+              <p className="mb-3 font-heading text-[10px] font-bold uppercase tracking-widest text-[#9ca3af]">
+                Manajemen Path
+              </p>
               <button
                 type="button"
-                onClick={() => setRegenerateModal(true)}
-                className="flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2.5 font-heading text-xs font-bold text-[#6b7280] shadow-sm hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
+                onClick={() => router.push("/learning-path")}
+                className={primaryGoldCtaClass("flex w-full items-center justify-center gap-2 rounded-lg py-3 font-heading text-sm font-bold")}
               >
-                <RefreshIcon /> Regenerate Path
+                <SaveIcon /> Simpan Perubahan
               </button>
-            </Tooltip>
-          </div>
-        </div>
+            </div>
 
-        {/* Overview */}
-        {path.questionnaire_snapshot?.overview && (
-          <div className="mb-8 rounded-xl border border-[#e5e7eb] bg-gradient-to-r from-[#fff9e6] to-white p-6">
-            <p className="font-body text-sm leading-relaxed text-[#4b5563]">
-              {path.questionnaire_snapshot.overview}
-            </p>
-            {path.questionnaire_snapshot.target_skills.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {path.questionnaire_snapshot.target_skills.map((skill) => (
-                  <span key={skill} className="inline-block rounded-full border border-[#e5e7eb] bg-white px-3 py-1 text-xs font-bold text-[#4b5563]">
-                    {skill}
-                  </span>
-                ))}
+            {/* Catatan */}
+            <div className="rounded-xl border border-[#f0e6a0] bg-[#fffdf0] p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <InfoCircleIcon />
+                <p className="font-heading text-[10px] font-bold uppercase tracking-widest text-[#9ca3af]">
+                  Catatan
+                </p>
               </div>
-            )}
-          </div>
-        )}
+              <p className="font-body text-xs leading-relaxed text-[#4b5563]">
+                Modul dapat diubah urutan dengan menarik indikator di sebelah kiri. Semua perubahan akan disimpan sebagai draf sebelum path disave.
+              </p>
+            </div>
 
-        {/* Phases */}
-        {phases.length > 0 ? (
-          <div className="mb-8 space-y-6">
-            {phases.map((phase, phaseIdx) => (
-              <PhaseSection
-                key={phase.phase_number}
-                phase={phase}
-                phaseIndex={phaseIdx}
-                allCourses={path.courses}
-                onReplace={(courseId, title) =>
-                  setReplaceModal({ open: true, courseId, courseTitle: title })
-                }
-                onDelete={handleDeleteCourse}
-                onToggleComplete={handleToggleComplete}
-                isLast={phaseIdx === phases.length - 1}
-              />
-            ))}
+            {/* Regenerate */}
+            <button
+              type="button"
+              onClick={() => setRegenerateModal(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-4 py-3 font-heading text-[11px] font-bold uppercase tracking-widest text-[#6b7280] transition-colors hover:border-[#1c1c1c] hover:text-dark"
+            >
+              <RefreshIcon /> Regenerate Path
+            </button>
           </div>
-        ) : (
-          <div className="mb-8 space-y-4">
-            {path.courses.map((course, idx) => (
-              <AICourseRow
-                key={course.id}
-                course={course}
-                index={idx}
-                onReplace={() =>
-                  setReplaceModal({
-                    open: true,
-                    courseId: course.id,
-                    courseTitle: course.course.title,
-                  })
-                }
-                onDelete={() => handleDeleteCourse(course.id)}
-                onToggleComplete={() => handleToggleComplete(course.id)}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Tips */}
-        {path.questionnaire_snapshot?.tips_for_success?.length > 0 && (
-          <div className="mb-8 rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-6">
-            <h3 className="mb-3 font-heading text-base font-bold text-dark">Tips for Success</h3>
-            <ul className="space-y-2">
-              {path.questionnaire_snapshot.tips_for_success.map((tip, i) => (
-                <li key={i} className="flex items-start gap-2 font-body text-sm text-[#4b5563]">
-                  <span className="mt-1 shrink-0 text-gold">✓</span>
-                  {tip}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Next steps */}
-        {path.questionnaire_snapshot?.next_steps_after_roadmap?.length > 0 && (
-          <div className="mb-8 rounded-xl border border-[#e5e7eb] bg-white p-6">
-            <h3 className="mb-3 font-heading text-base font-bold text-dark">Next Steps After This Roadmap</h3>
-            <ul className="space-y-2">
-              {path.questionnaire_snapshot.next_steps_after_roadmap.map((step, i) => (
-                <li key={i} className="flex items-start gap-2 font-body text-sm text-[#4b5563]">
-                  <ArrowIcon />
-                  {step}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Add Course CTA */}
-        <div className="mb-8 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setAddCourseModal(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#e5e7eb] bg-white py-5 font-heading text-[10px] font-extrabold uppercase tracking-widest text-[#6b7280] hover:border-gold hover:text-[#1c1c1c] sm:w-auto sm:px-8"
-          >
-            <PlusIcon />
-            Tambah Kursus
-          </button>
-        </div>
-
-        {/* Action bar */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setRegenerateModal(true)}
-            className="flex items-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-5 py-3 font-heading text-sm font-bold text-[#6b7280] hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
-          >
-            <RefreshIcon /> Regenerate Path
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/learning-path")}
-            className={primaryGoldCtaClass("flex items-center gap-2 rounded-xl px-5 py-3 font-heading text-sm font-bold")}
-          >
-            <SaveIcon /> Simpan & Selesai
-          </button>
         </div>
       </div>
 
-      <footer className="mt-auto border-t border-[rgba(209,209,209,0.35)] bg-[#fdfdfd]">
-        <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-6 px-8 py-12 text-[11px] font-bold uppercase tracking-wide text-[#4a4a4a] md:flex-row md:items-center">
-          <p>© 2024 PersonaLearn. All rights reserved.</p>
-          <div className="flex flex-wrap gap-8">
+      {/* Footer */}
+      <footer className="mt-auto border-t border-[#e5e7eb] bg-white">
+        <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-4 px-6 py-8 text-[11px] font-bold uppercase tracking-wide text-[#9ca3af] md:flex-row">
+          <p>© 2024 PersonaLearn IT. All rights reserved.</p>
+          <div className="flex gap-8">
             <span className="cursor-pointer hover:text-dark">Legal</span>
             <span className="cursor-pointer hover:text-dark">Support</span>
-            <span className="cursor-pointer hover:text-dark">Privacy policy</span>
-            <span className="cursor-pointer hover:text-dark">Terms of service</span>
+            <span className="cursor-pointer hover:text-dark">Privacy Policy</span>
+            <span className="cursor-pointer hover:text-dark">Terms of Service</span>
           </div>
         </div>
       </footer>
@@ -309,23 +231,18 @@ export function ModifyPathClient({ pathId }: Props) {
           courseId={replaceModal.courseId}
           courseTitle={replaceModal.courseTitle}
           onReplaced={loadPath}
-          onDeleted={() => {
-            handleDeleteCourse(replaceModal.courseId);
-            setReplaceModal((m) => ({ ...m, open: false }));
-          }}
+          onDeleted={() => { handleDeleteCourse(replaceModal.courseId); setReplaceModal((m) => ({ ...m, open: false })); }}
         />
       )}
-
       {regenerateModal && (
         <RegeneratePathModal
           open={regenerateModal}
           onClose={() => setRegenerateModal(false)}
           pathId={pathId}
-          title={path.questionnaire_snapshot?.roadmap_title ?? path.title}
+          title={title}
           onRegenerated={loadPath}
         />
       )}
-
       {addCourseModal && (
         <AddCourseToPathModal
           open={addCourseModal}
@@ -338,296 +255,264 @@ export function ModifyPathClient({ pathId }: Props) {
   );
 }
 
-// ─── Phase Section ──────────────────────────────────────────────────────────
+// ─── Course Row ──────────────────────────────────────────────────────────────
 
-function PhaseSection({
-  phase,
-  phaseIndex,
-  allCourses,
-  onReplace,
-  onDelete,
-  onToggleComplete,
-  isLast,
-}: {
-  phase: LearningPathPhase;
-  phaseIndex: number;
-  allCourses: LearningPathCourse[];
-  onReplace: (courseId: string, title: string) => void;
-  onDelete: (courseId: string) => void;
-  onToggleComplete: (courseId: string) => void;
-  isLast: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm">
-      {/* Phase header */}
-      <div className="flex items-center gap-4 border-b border-[#e5e7eb] bg-[#fafafa] px-6 py-4">
-        <div className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-full font-heading text-sm font-extrabold",
-          isLast ? "bg-[#1c1c1c] text-gold" : "bg-gold text-[#121212]",
-        )}>
-          {phase.phase_number}
-        </div>
-        <div className="flex-1">
-          <h2 className="font-heading text-base font-bold text-dark">
-            {phase.phase_name}
-          </h2>
-          <p className="font-body text-xs text-[#6b7280]">
-            ~{phase.duration_weeks} weeks
-          </p>
-        </div>
-        <span className="shrink-0 rounded bg-[#f3f4f6] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#6b7280]">
-          {phase.courses.length} courses
-        </span>
-      </div>
-
-      <div className="px-6 pb-6 pt-4">
-        {/* Phase reason */}
-        {phase.phase_reason && (
-          <div className="mb-4 rounded border-l-4 border-gold bg-gold-light/30 px-4 py-3">
-            <div className="mb-1 flex items-center gap-2">
-              <LightbulbIcon />
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#121212]">Why this phase</span>
-            </div>
-            <p className="text-sm leading-relaxed text-[#121212]">{phase.phase_reason}</p>
-          </div>
-        )}
-
-        {/* Courses from phase */}
-        <div className="space-y-3">
-          {phase.courses.map((pc, i) => {
-            const lpCourse = allCourses.find((c) => c.course.id === pc.course_id);
-            return (
-              <AICourseRow
-                key={pc.course_id}
-                course={
-                  lpCourse ?? {
-                    id: pc.course_id,
-                    course: {
-                      id: pc.course_id,
-                      title: pc.title,
-                      instructor: "",
-                      rating: "0",
-                      level: "",
-                      video_hours: "",
-                      price: "",
-                      currency: "IDR",
-                      url: "",
-                      thumbnail_url: "",
-                    },
-                    position: i,
-                    is_completed: false,
-                    completed_at: null,
-                    is_manually_added: false,
-                  }
-                }
-                index={i}
-                matchReason={pc.match_reason}
-                onReplace={() => onReplace(pc.course_id, pc.title)}
-                onDelete={() => onDelete(pc.course_id)}
-                onToggleComplete={() => onToggleComplete(pc.course_id)}
-              />
-            );
-          })}
-        </div>
-
-        {/* Milestones */}
-        {phase.milestones.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-wider text-[#6b7280]">Milestones</p>
-            <ul className="space-y-1">
-              {phase.milestones.map((m, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-[#4b5563]">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-gold" />
-                  {m}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Transition to next */}
-        {phase.transition_to_next && (
-          <div className="mt-4 rounded border border-[#d1d5db] bg-[#f9fafb] px-4 py-3">
-            <div className="mb-1 flex items-center gap-1.5">
-              <ArrowIcon />
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#6b7280]">Transition</span>
-            </div>
-            <p className="text-sm leading-relaxed text-[#4b5563]">{phase.transition_to_next}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── AI Course Row ─────────────────────────────────────────────────────────
-
-function AICourseRow({
+function CourseRow({
   course,
   index,
-  matchReason,
-  onReplace,
+  expanded,
+  onToggle,
   onDelete,
   onToggleComplete,
+  onReplace,
 }: {
-  course: LearningPathCourse;
+  course: AugmentedCourse;
   index: number;
-  matchReason?: string;
-  onReplace: () => void;
+  expanded: boolean;
+  onToggle: () => void;
   onDelete: () => void;
   onToggleComplete: () => void;
+  onReplace: () => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const num = String(index + 1).padStart(2, "0");
   const isCompleted = course.is_completed;
+  const levelLabel = (course.phaseName ?? course.course.level ?? "").toUpperCase();
+  const hrs = course.course.video_hours ? `${Math.round(parseFloat(course.course.video_hours))}H` : "";
+  const metaLine = [levelLabel, hrs].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex items-start gap-4 rounded-xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-      {/* Index */}
-      <div className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full font-heading text-xs font-bold",
-        isCompleted ? "bg-green-500 text-white" : "bg-[#e5e7eb] text-[#6b7280]",
-      )}>
-        {isCompleted ? (
-          <CheckIcon />
-        ) : (
-          String(index + 1).padStart(2, "0")
+    <div className="flex items-stretch">
+      {/* Number badge */}
+      <div
+        className={cn(
+          "flex w-10 shrink-0 items-center justify-center rounded-l-xl font-heading text-sm font-extrabold",
+          isCompleted ? "bg-green-500 text-white" : "bg-gold text-[#121212]",
         )}
+      >
+        {isCompleted ? <CheckSmallIcon /> : num}
       </div>
 
-      {/* Course info */}
-      <div className="min-w-0 flex-1">
-        <h3 className="font-heading text-sm font-bold text-dark">{course.course.title}</h3>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
-          {course.course.instructor && <span>{course.course.instructor}</span>}
-          {course.course.rating && parseFloat(course.course.rating) > 0 && (
-            <span>⭐ {parseFloat(course.course.rating).toFixed(1)}</span>
-          )}
-          {course.course.level && <span>{course.course.level}</span>}
-          {course.course.video_hours && (
-            <span>{parseFloat(course.course.video_hours).toFixed(0)}h</span>
-          )}
-          {course.course.price && parseFloat(course.course.price) > 0 && (
-            <span className="font-bold text-[#1c1c1c]">
-              {course.course.currency === "IDR"
-                ? `IDR ${parseFloat(course.course.price).toLocaleString("id-ID")}`
-                : `${course.course.currency} ${course.course.price}`}
-            </span>
-          )}
-        </div>
-        {matchReason && (
-          <p className="mt-1.5 rounded bg-gold-light/50 px-2.5 py-1 text-xs italic text-[#4b5563]">
-            💡 {matchReason}
-          </p>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex shrink-0 items-center gap-2">
-        {/* Detail link */}
-        <Tooltip content="Detail Kursus" side="top">
-          <Link
-            href={`/course-catalog/${course.course.id}`}
-            className="flex size-8 items-center justify-center rounded-lg border border-[#e5e7eb] text-[#9ca3af] hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
-          >
-            <InfoIcon />
-          </Link>
-        </Tooltip>
-
-        {/* Toggle complete */}
-        <Tooltip content={isCompleted ? "Undo Complete" : "Mark Complete"} side="top">
-          <button
-            type="button"
-            onClick={onToggleComplete}
+      {/* Card */}
+      <div className="flex-1 overflow-hidden rounded-r-xl border border-l-0 border-[#e5e7eb] bg-white">
+        {/* Row header */}
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex w-full items-center gap-3 px-4 py-3 text-left"
+        >
+          <DragIcon />
+          {/* Checkbox */}
+          <span
+            role="presentation"
+            onClick={(e) => { e.stopPropagation(); onToggleComplete(); }}
             className={cn(
-              "flex size-8 items-center justify-center rounded-lg border text-sm transition-colors",
-              isCompleted
-                ? "border-green-300 bg-green-50 text-green-600 hover:border-red-300 hover:bg-red-50 hover:text-red-500"
-                : "border-[#e5e7eb] text-[#9ca3af] hover:border-green-300 hover:bg-green-50 hover:text-green-600",
+              "flex size-5 shrink-0 cursor-pointer items-center justify-center rounded border-2 transition-colors",
+              isCompleted ? "border-green-500 bg-green-500" : "border-[#d1d5db] hover:border-gold",
             )}
           >
-            {isCompleted ? <CheckIcon /> : <CheckIcon />}
-          </button>
-        </Tooltip>
-
-        {/* Menu */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="flex size-8 items-center justify-center rounded-lg border border-[#e5e7eb] text-[#9ca3af] hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
+            {isCompleted && <CheckSmallIcon />}
+          </span>
+          {/* Title + meta */}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-heading text-sm font-bold text-dark">{course.course.title}</span>
+            {metaLine && (
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-[#9ca3af]">{metaLine}</span>
+            )}
+          </span>
+          {/* Chevron */}
+          <ChevronIcon className={cn("shrink-0 text-[#9ca3af] transition-transform duration-200", expanded && "rotate-180")} />
+          {/* Trash */}
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="Hapus kursus"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onDelete(); } }}
+            className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded text-[#d1d5db] hover:text-red-500"
           >
-            <MenuIcon />
-          </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-[#e5e7eb] bg-white py-1 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => { onReplace(); setMenuOpen(false); }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left font-body text-sm text-[#4b5563] hover:bg-[#f9fafb]"
-                >
-                  <RefreshSmallIcon /> Replace
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { onDelete(); setMenuOpen(false); }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left font-body text-sm text-red-500 hover:bg-red-50"
-                >
-                  <TrashSmallIcon /> Remove
-                </button>
+            <TrashIcon />
+          </span>
+        </button>
+
+        {/* Expanded detail */}
+        {expanded && (
+          <div className="border-t border-[#e5e7eb] p-4">
+            <div className="flex gap-4 rounded-xl border border-[#e5e7eb] p-4 shadow-sm">
+              {/* Thumbnail */}
+              {course.course.thumbnail_url && (
+                <div className="w-[160px] shrink-0 overflow-hidden rounded-lg bg-[#f3f4f6]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={course.course.thumbnail_url}
+                    alt={course.course.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Details */}
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                {/* AI Insight */}
+                {course.matchReason && (
+                  <div className="rounded-lg border border-[#f0e08a]/50 bg-[#fef9e4] p-3">
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <SparkleIcon />
+                      <span className="font-heading text-[10px] font-extrabold uppercase tracking-wider text-[#8a6a00]">AI Insight</span>
+                    </div>
+                    <p className="font-body text-xs leading-relaxed text-[#4b5563]">{course.matchReason}</p>
+                  </div>
+                )}
+
+                {/* Title + level */}
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-heading text-base font-bold leading-snug text-dark">{course.course.title}</h3>
+                  {levelLabel && (
+                    <span className="shrink-0 font-heading text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
+                      {levelLabel}
+                    </span>
+                  )}
+                </div>
+
+                {/* Instructor */}
+                {course.course.instructor && (
+                  <p className="font-body text-xs text-[#6b7280]">Instructor: {course.course.instructor}</p>
+                )}
+
+                {/* Rating + price */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {course.course.rating && parseFloat(course.course.rating) > 0 && (
+                    <span className="flex items-center gap-1 font-body text-xs font-bold text-[#4b5563]">
+                      <StarIcon /> {parseFloat(course.course.rating).toFixed(1)}
+                    </span>
+                  )}
+                  {course.course.price && parseFloat(course.course.price) > 0 && (
+                    <span className="font-body text-xs font-bold text-[#1c1c1c]">
+                      {course.course.currency === "IDR"
+                        ? `IDR ${parseFloat(course.course.price).toLocaleString("id-ID")}`
+                        : `$${parseFloat(course.course.price).toFixed(2)}`}
+                    </span>
+                  )}
+                </div>
+
+                {/* What you'll learn */}
+                {course.learningObjectives && course.learningObjectives.length > 0 && (
+                  <div>
+                    <p className="mb-1 font-heading text-[10px] font-extrabold uppercase tracking-wider text-[#6b7280]">
+                      What You&apos;ll Learn:
+                    </p>
+                    <ul className="space-y-0.5">
+                      {course.learningObjectives.slice(0, 3).map((obj, i) => (
+                        <li key={i} className="font-body text-xs text-[#4b5563]">{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Stats */}
+                {course.course.video_hours && (
+                  <div className="flex flex-wrap gap-4 text-xs text-[#6b7280]">
+                    <span className="flex items-center gap-1"><ClockIcon /> {Math.round(parseFloat(course.course.video_hours))}h total</span>
+                    <span className="flex items-center gap-1"><PlayIcon /> {Math.round(parseFloat(course.course.video_hours))}h video</span>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="mt-auto flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={onReplace}
+                    className="flex items-center gap-1.5 rounded border border-[#e5e7eb] px-3 py-1.5 font-heading text-xs font-bold text-[#6b7280] hover:border-[#1c1c1c] hover:text-dark"
+                  >
+                    <RefreshSmIcon /> Replace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onToggleComplete}
+                    className={cn(
+                      "rounded-lg px-4 py-2 font-heading text-xs font-bold transition-colors",
+                      isCompleted
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : primaryGoldCtaClass(),
+                    )}
+                  >
+                    {isCompleted ? "✓ Selesai" : "Selesai dipelajari"}
+                  </button>
+                </div>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── App Bar ────────────────────────────────────────────────────────────────
+// ─── Icons ───────────────────────────────────────────────────────────────────
 
-function AppBar() {
+function ArrowLeftIcon() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#f0f0f0] bg-white/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between py-4 px-6">
-        <Link href="/" className="font-heading text-xl font-extrabold tracking-tight text-dark">
-          PersonaLearn
-        </Link>
-        <nav className="flex items-center gap-6">
-          <Link href="/learning-path" className="font-heading text-sm font-semibold text-dark">
-            Learning Path
-          </Link>
-          <Link href="/course-catalog" className="font-heading text-sm font-semibold text-[#4a4a4a] hover:text-dark">
-            Courses
-          </Link>
-          <Link href="/ai/course-recommendation" className="font-heading text-sm font-semibold text-[#4a4a4a] hover:text-dark">
-            AI Recommendations
-          </Link>
-        </nav>
-        <Link href="/profile" className="rounded-full bg-[#f0f0f0] px-3 py-1.5 font-body text-xs font-bold text-[#4a4a4a] hover:bg-[#e0e0e0]">
-          Profile
-        </Link>
-      </div>
-    </header>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+    </svg>
   );
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────
-
-function AppBarIcon() { return null; }
-
-function MapPinIcon() {
+function DragIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="9" cy="6" r="1.5" fill="#d1d5db" />
+      <circle cx="15" cy="6" r="1.5" fill="#d1d5db" />
+      <circle cx="9" cy="12" r="1.5" fill="#d1d5db" />
+      <circle cx="15" cy="12" r="1.5" fill="#d1d5db" />
+      <circle cx="9" cy="18" r="1.5" fill="#d1d5db" />
+      <circle cx="15" cy="18" r="1.5" fill="#d1d5db" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3" />
+    </svg>
+  );
+}
+
+function CheckSmallIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a6a00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1" aria-hidden>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   );
 }
 
 function ClockIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
     </svg>
   );
@@ -635,73 +520,24 @@ function ClockIcon() {
 
 function PlayIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <polygon points="5 3 19 12 5 21 5 3" />
-    </svg>
-  );
-}
-
-function ChartIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-    </svg>
-  );
-}
-
-function LightbulbIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c335a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
-    </svg>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
     </svg>
   );
 }
 
 function SaveIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
       <polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
     </svg>
   );
 }
 
-function PlusIcon() {
+function InfoCircleIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0" aria-hidden>
-      <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="12" />
       <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -709,27 +545,28 @@ function InfoIcon() {
   );
 }
 
-function MenuIcon() {
+function RefreshIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" />
-    </svg>
-  );
-}
-
-function RefreshSmallIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
     </svg>
   );
 }
 
-function TrashSmallIcon() {
+function RefreshSmIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3" />
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }
