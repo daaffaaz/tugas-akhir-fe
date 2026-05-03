@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -121,7 +121,7 @@ export function ModifyPathClient({ pathId }: Props) {
       const oldIdx = prev.findIndex((c) => c.id === active.id);
       const newIdx = prev.findIndex((c) => c.id === over.id);
       const next = arrayMove(prev, oldIdx, newIdx);
-      reorderPathCourses(pathId, next.map((c) => c.id)).catch(() => {/* silent */});
+      reorderPathCourses(pathId, next.map((c: AugmentedCourse) => c.id)).catch(() => {/* silent */});
       return next;
     });
   }
@@ -165,10 +165,33 @@ export function ModifyPathClient({ pathId }: Props) {
         </Link>
 
         {/* 12-col grid */}
-        <div className="mt-10 grid grid-cols-12 gap-10">
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
 
           {/* ── Left: course list (8 cols) ── */}
-          <div className="col-span-8 flex flex-col gap-8">
+          <div className="col-span-12 lg:col-span-8 flex flex-col gap-8">
+            {/* Title row with stats */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="font-heading text-[28px] font-extrabold leading-none tracking-tight text-[#1c1c1c] sm:text-[36px]">
+                  {title}
+                </h1>
+                {(path as unknown as { regenerate_count?: number }).regenerate_count != null && (
+                  <span className="rounded-full bg-gold px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-wide text-dark">
+                    Regen {(path as unknown as { regenerate_count: number }).regenerate_count}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 rounded-xl border border-[#e5e7eb] bg-white px-5 py-3 shadow-sm">
+                <div className="text-right">
+                  <p className="font-body text-[10px] font-extrabold uppercase tracking-[1px] text-[#6b7280]">
+                    Progress
+                  </p>
+                  <p className="font-heading text-lg font-extrabold text-gold">
+                    {courses.filter((c) => c.is_completed).length}/{courses.length}
+                  </p>
+                </div>
+              </div>
+            </div>
             {/* Title row */}
             <div className="flex items-center justify-between">
               <h1 className="font-heading text-[36px] font-extrabold tracking-[-0.9px] text-[#1c1c1c]">
@@ -208,6 +231,59 @@ export function ModifyPathClient({ pathId }: Props) {
               </div>
             )}
 
+            {/* Overview + Tips (for AI-generated paths) */}
+            {path.questionnaire_snapshot && (
+              <div className="flex flex-col gap-6 rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+                {/* Overview */}
+                {path.questionnaire_snapshot.overview && (
+                  <div>
+                    <h3 className="mb-2 font-heading text-sm font-extrabold uppercase tracking-wide text-dark">
+                      📋 Overview
+                    </h3>
+                    <p className="font-body text-sm leading-relaxed text-[#4b5563]">
+                      {path.questionnaire_snapshot.overview}
+                    </p>
+                  </div>
+                )}
+
+                {/* Tips for success */}
+                {path.questionnaire_snapshot.tips_for_success && path.questionnaire_snapshot.tips_for_success.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 font-heading text-sm font-extrabold uppercase tracking-wide text-dark">
+                      💡 Tips for Success
+                    </h3>
+                    <ul className="space-y-1">
+                      {path.questionnaire_snapshot.tips_for_success.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2 font-body text-sm text-[#4b5563]">
+                          <span className="mt-1 shrink-0 text-gold">•</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Next steps */}
+                {path.questionnaire_snapshot.next_steps_after_roadmap && path.questionnaire_snapshot.next_steps_after_roadmap.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 font-heading text-sm font-extrabold uppercase tracking-wide text-dark">
+                      🚀 Next Steps After This Path
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {path.questionnaire_snapshot.next_steps_after_roadmap.map((step, i) => (
+                        <span
+                          key={i}
+                          className="rounded-full border border-[#e5e7eb] bg-[#fafafa] px-3 py-1.5 font-body text-xs font-bold text-[#4b5563]"
+                        >
+                          {step}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Phases */}
             {phases.length > 0 && (
               <div className="flex flex-col gap-4">
@@ -220,6 +296,8 @@ export function ModifyPathClient({ pathId }: Props) {
                     phase={phase}
                     courses={path.courses}
                     isLast={i === phases.length - 1}
+                    onReplace={(courseId, courseTitle) => setReplaceModal({ open: true, courseId, courseTitle })}
+                    onRemove={(courseId) => handleDeleteCourse(courseId)}
                   />
                 ))}
               </div>
@@ -227,8 +305,20 @@ export function ModifyPathClient({ pathId }: Props) {
 
             {/* Course list with vertical timeline */}
             <div className="relative flex flex-col gap-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-heading text-sm font-extrabold uppercase tracking-wide text-[#9ca3af]">
+                  📋 Course List ({courses.length})
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setAddCourseModal(true)}
+                  className="flex items-center gap-2 rounded border border-[#e5e7eb] bg-white px-3 py-2 font-body text-[11px] font-bold text-[#6b7280] hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
+                >
+                  <PlusIcon /> Tambah
+                </button>
+              </div>
               {/* Vertical timeline line */}
-              <div className="absolute bottom-0 left-6 top-0 w-px bg-[#e5e7eb]" />
+              <div className="absolute bottom-0 start-6 top-0 w-px bg-[#e5e7eb]" />
 
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={courses.map((c) => c.id)} strategy={verticalListSortingStrategy}>
@@ -247,19 +337,11 @@ export function ModifyPathClient({ pathId }: Props) {
                 </SortableContext>
               </DndContext>
 
-              {/* Add course */}
-              <button
-                type="button"
-                onClick={() => setAddCourseModal(true)}
-                className="flex w-full items-center justify-center gap-3 rounded border border-[#e5e7eb] bg-white py-[21px] font-heading text-[10px] font-extrabold uppercase tracking-[1px] text-[#1c1c1c] hover:border-[#1c1c1c]"
-              >
-                <PlusIcon /> Tambah Kursus
-              </button>
             </div>
           </div>
 
           {/* ── Right: sidebar (4 cols) ── */}
-          <div className="col-span-4 flex flex-col gap-6">
+          <div className="hidden lg:col-span-4 lg:flex flex-col gap-6">
             {/* Manajemen Path */}
             <div className="rounded border border-[#e5e7eb] bg-white p-[33px] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
               <p className="mb-6 font-heading text-[10px] font-extrabold uppercase tracking-[2.5px] text-[#9ca3af]">
@@ -516,12 +598,12 @@ function CourseRow({ course, index, expanded, onToggle, onDelete, onToggleComple
                 <div className="flex gap-6">
                   {/* Thumbnail */}
                   {course.course.thumbnail_url ? (
-                    <div className="w-[192px] shrink-0 overflow-hidden rounded bg-[#e5e7eb]">
+                    <div className="hidden sm:block w-[192px] shrink-0 overflow-hidden rounded bg-[#e5e7eb]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={course.course.thumbnail_url} alt={course.course.title} className="h-full w-full object-cover" />
                     </div>
                   ) : (
-                    <div className="w-[192px] shrink-0 rounded bg-[#e5e7eb]" />
+                    <div className="hidden sm:block w-[192px] shrink-0 rounded bg-[#e5e7eb]" />
                   )}
 
                   {/* Details */}
@@ -627,7 +709,15 @@ function CourseRow({ course, index, expanded, onToggle, onDelete, onToggleComple
                     </div>
 
                     {/* Action row */}
-                    <div className="mt-4 flex items-center justify-end border-t border-[#e5e7eb] pt-[17px]">
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#e5e7eb] pt-[17px]">
+                      <button
+                        type="button"
+                        onClick={() => onReplace()}
+                        className="flex items-center gap-2 rounded border border-[#e5e7eb] bg-white px-[18px] py-[14px] font-body text-[13px] font-bold text-[#6b7280] shadow-sm transition-colors hover:border-[#9ca3af] hover:text-[#1c1c1c]"
+                      >
+                        <RefreshIcon />
+                        Replace
+                      </button>
                       <button
                         type="button"
                         onClick={() => isCompleted ? onToggleComplete() : onToggleComplete()}
