@@ -106,7 +106,7 @@ export function CreatePathForm() {
               primaryGoldCtaClass(
                 "group relative inline-flex min-w-[220px] items-center gap-2 rounded-full px-10 py-4 font-heading text-lg font-extrabold shadow-[0px_10px_15px_-3px_rgba(255,206,0,0.2)]",
               ),
-              (busy || topic.trim().length < 3) && "cursor-not-allowed",
+              (busy || topic.trim().length < 3) ? "cursor-not-allowed" : undefined,
             )}
           >
             {busy ? "Generating..." : "Buat path"}

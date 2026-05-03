@@ -38,7 +38,7 @@ export function RegenerateSection({
         disabled={disabled || !contextValue.trim()}
         className={primaryGoldCtaClass(
           "flex w-full items-center justify-center gap-2 rounded px-6 py-3 font-heading text-sm font-bold",
-          disabled && "cursor-not-allowed",
+          disabled ? "cursor-not-allowed" : undefined,
         )}
       >
         {disabled ? (
