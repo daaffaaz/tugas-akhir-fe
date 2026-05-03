@@ -2,22 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { LearningPathListItem } from "@/types/rag";
+import type { LearningPathStats, LearningPathSummary } from "@/lib/types";
 import { LearningPathCard } from "@/components/learning-path/LearningPathCard";
 import { primaryGoldCtaClass, primaryCtaIconHover } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
 const imgTechBackground =
-  "/images/8138a0a8-d918-4d6c-9e75-ebb2545f2be9.png";
+  "https://www.figma.com/api/mcp/asset/8138a0a8-d918-4d6c-9e75-ebb2545f2be9";
 const imgSparkleBtn =
-  "/images/14acf7d8-16c3-43e5-835f-46552b35585e.png";
+  "https://www.figma.com/api/mcp/asset/14acf7d8-16c3-43e5-835f-46552b35585e";
 const imgCompass =
-  "/images/4ab9fb7e-2334-4de8-b654-832aff4615aa.png";
+  "https://www.figma.com/api/mcp/asset/4ab9fb7e-2334-4de8-b654-832aff4615aa";
 const imgStatSparkle =
-  "/images/c412f371-bb2d-4eaa-9d0c-456f3ac01e09.png";
+  "https://www.figma.com/api/mcp/asset/c412f371-bb2d-4eaa-9d0c-456f3ac01e09";
 
 type Props = {
-  paths: LearningPathListItem[];
+  paths: LearningPathSummary[];
+  stats: LearningPathStats;
 };
 
 function LearningPathFooter() {
@@ -36,16 +37,8 @@ function LearningPathFooter() {
   );
 }
 
-export function LearningPathView({ paths }: Props) {
+export function LearningPathView({ paths, stats }: Props) {
   const isEmpty = paths.length === 0;
-
-  const totalProgress =
-    paths.length > 0
-      ? Math.round(
-          paths.reduce((sum, p) => sum + p.progress_percentage, 0) /
-            paths.length,
-        )
-      : 0;
 
   if (isEmpty) {
     return (
@@ -183,7 +176,7 @@ export function LearningPathView({ paths }: Props) {
             </div>
             <div>
               <p className="font-heading text-3xl font-extrabold text-[#1c1c1c]">
-                {paths.length}
+                {stats.activePaths}
               </p>
               <p className="mt-1 font-body text-sm font-bold uppercase tracking-wide text-[#54595e]">
                 Path aktif
@@ -198,14 +191,14 @@ export function LearningPathView({ paths }: Props) {
             <h3 className="font-body text-2xl font-bold">Progres umum</h3>
             <div className="mt-2 flex items-end gap-2">
               <span className="font-heading text-5xl font-extrabold text-gold">
-                {totalProgress}
+                {stats.overallProgressPercent}
               </span>
               <span className="pb-1 text-xl font-bold opacity-80">%</span>
             </div>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-gold"
-                style={{ width: `${totalProgress}%` }}
+                style={{ width: `${stats.overallProgressPercent}%` }}
               />
             </div>
           </div>

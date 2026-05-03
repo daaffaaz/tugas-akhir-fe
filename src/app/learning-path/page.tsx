@@ -1,7 +1,9 @@
 import { AppBar } from "@/components/layout/AppBar";
-import { getLearningPathList } from "@/lib/api/rag";
+import {
+  getLearningPathStats,
+  getLearningPaths,
+} from "@/lib/api/learning-path";
 import { LearningPathView } from "./learning-path-view";
-import type { LearningPathListItem } from "@/types/rag";
 
 type SearchParams = Promise<{ empty?: string }>;
 
@@ -13,20 +15,17 @@ export default async function LearningPathPage({
   const sp = await searchParams;
   const forceEmpty = sp.empty === "1";
 
-  let paths: LearningPathListItem[] = [];
-  if (!forceEmpty) {
-    try {
-      const data = await getLearningPathList();
-      paths = data.results;
-    } catch {
-      paths = [];
-    }
-  }
+  const [paths, stats] = await Promise.all([
+    forceEmpty ? Promise.resolve([]) : getLearningPaths(),
+    forceEmpty
+      ? Promise.resolve({ activePaths: 0, overallProgressPercent: 0 })
+      : getLearningPathStats(),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f9fa] font-body text-dark">
       <AppBar />
-      <LearningPathView paths={paths} />
+      <LearningPathView paths={paths} stats={stats} />
     </div>
   );
 }
