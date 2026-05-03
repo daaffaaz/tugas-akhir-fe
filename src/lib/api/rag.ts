@@ -251,3 +251,18 @@ export async function toggleCourseComplete(
     { method: "POST", auth: true },
   );
 }
+
+/** PATCH /api/rag/learning-paths/{id}/courses/reorder/ — reorder courses by position */
+export async function reorderPathCourses(
+  pathId: string,
+  courseIds: string[],
+): Promise<void> {
+  await apiFetch(
+    `/api/rag/learning-paths/${pathId}/courses/reorder/`,
+    {
+      method: "PATCH",
+      body: { course_ids: courseIds },
+      auth: true,
+    },
+  );
+}
