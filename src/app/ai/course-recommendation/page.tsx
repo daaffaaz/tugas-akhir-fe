@@ -166,7 +166,7 @@ function PageContent() {
               disabled={isLoading || topic.trim().length < 3}
               className={primaryGoldCtaClass(
                 "flex items-center gap-2 rounded px-6 py-3 font-heading text-base font-bold",
-                (isLoading || topic.trim().length < 3) && "cursor-not-allowed",
+                (isLoading || topic.trim().length < 3) ? "cursor-not-allowed" : undefined,
               )}
             >
               {isLoading ? (
