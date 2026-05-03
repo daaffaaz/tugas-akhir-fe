@@ -6,6 +6,7 @@ import { getSimilarCourses, addCourseToPath } from "@/lib/api/rag";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { SimilarCourse } from "@/types/rag";
 import { primaryGoldCtaClass, primaryGoldCtaClassSoftDisabled } from "@/lib/primary-cta";
+import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;

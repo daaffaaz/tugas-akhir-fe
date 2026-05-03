@@ -220,8 +220,8 @@ export function ModifyPathClient({ pathId }: Props) {
                     courseTitle: course.course.title,
                   })
                 }
-                onDelete={handleDeleteCourse}
-                onToggleComplete={handleToggleComplete}
+                onDelete={() => handleDeleteCourse(course.id)}
+                onToggleComplete={() => handleToggleComplete(course.id)}
               />
             ))}
           </div>
