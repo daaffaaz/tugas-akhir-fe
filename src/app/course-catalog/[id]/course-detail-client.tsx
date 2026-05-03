@@ -51,9 +51,10 @@ export function CourseDetailClient({ courseId }: Props) {
   const isIcei = platformName.toLowerCase() === "icei";
 
   function formatPrice() {
-    if (course.price === null || course.price === undefined || Number(course.price) === 0) return "Gratis";
-    const currency = course.currency === "IDR" ? "IDR" : course.currency;
-    const price = Number(course.price);
+    const c = course as CourseDetail;
+    if (c.price === null || c.price === undefined || Number(c.price) === 0) return "Gratis";
+    const currency = c.currency === "IDR" ? "IDR" : c.currency;
+    const price = Number(c.price);
     if (currency === "IDR") return `IDR ${price.toLocaleString("id-ID")}`;
     return `${currency} ${price.toFixed(2)}`;
   }
