@@ -18,6 +18,9 @@ const imgStatSparkle =
 
 type Props = {
   paths: LearningPathListItem[];
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 };
 
 function LearningPathFooter() {
@@ -36,8 +39,57 @@ function LearningPathFooter() {
   );
 }
 
-export function LearningPathView({ paths }: Props) {
+export function LearningPathView({ paths, loading, error, onRetry }: Props) {
   const isEmpty = paths.length === 0;
+
+  // Loading state
+  if (loading) {
+    return (
+      <>
+        <div className="mx-auto w-full max-w-[1280px] flex-1 px-6 pb-16 pt-12 md:px-6 md:pt-24">
+          <div className="flex flex-col gap-6 pb-12 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-lg">
+              <div className="h-10 w-64 animate-pulse rounded-lg bg-[#e5e7eb]" />
+              <div className="mt-2 h-5 w-96 animate-pulse rounded bg-[#e5e7eb]" />
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="h-48 animate-pulse rounded-xl bg-white" />
+            <div className="h-48 animate-pulse rounded-xl bg-white md:col-span-2" />
+          </div>
+          <div className="mt-12 flex flex-col gap-6">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-32 animate-pulse rounded-xl bg-white" />
+            ))}
+          </div>
+        </div>
+        <LearningPathFooter />
+      </>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <>
+        <div className="mx-auto w-full max-w-[1280px] flex-1 px-6 pb-16 pt-12 md:px-6 md:pt-24">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+            <p className="mb-4 font-body text-red-600">{error}</p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="rounded-lg bg-gold px-6 py-2 font-body text-sm font-bold text-[#1c1c1c] hover:bg-dark hover:text-gold"
+              >
+                Coba Lagi
+              </button>
+            )}
+          </div>
+        </div>
+        <LearningPathFooter />
+      </>
+    );
+  }
 
   // Compute stats from paths data
   const activePaths = paths.length;
