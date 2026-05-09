@@ -27,7 +27,7 @@ import {
 import { PathOverviewCard } from "@/components/learning-path/PathOverviewCard";
 import { ReplaceCourseModal } from "@/components/learning-path/ReplaceCourseModal";
 import { RegeneratePathModal } from "@/components/learning-path/RegeneratePathModal";
-import { AddCourseToPathModal } from "@/components/learning-path/AddCourseToPathModal";
+import { AddCourseToPathModal, type AvailablePhase } from "@/components/learning-path/AddCourseToPathModal";
 import { AppBar } from "@/components/layout/AppBar";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 
@@ -165,6 +165,15 @@ export function ModifyPathClient({ pathId }: Props) {
   const phaseGroups = useMemo<PhaseGroup[]>(
     () => (path ? buildPhaseGroups(path, visibleDraftCourses) : []),
     [path, visibleDraftCourses],
+  );
+
+  const availablePhases = useMemo<AvailablePhase[]>(
+    () =>
+      (path?.questionnaire_snapshot?.phases ?? []).map((p) => ({
+        phase_number: p.phase_number,
+        phase_name: p.phase_name,
+      })),
+    [path],
   );
 
   const isDirty = useMemo(() => {
@@ -529,8 +538,9 @@ export function ModifyPathClient({ pathId }: Props) {
           open={addCourseModal}
           onClose={() => setAddCourseModal(false)}
           pathId={pathId}
+          courseId={visibleDraftCourses[0]?.course.id}
           onAdded={loadPath}
-          currentCourseCount={visibleDraftCourses.length}
+          availablePhases={availablePhases}
         />
       )}
     </div>

@@ -70,6 +70,7 @@ export interface LearningPathCourse {
     tags?: string[];
   };
   position: number;
+  phase_number: number | null;
   is_completed: boolean;
   completed_at: string | null;
   is_manually_added: boolean;
@@ -180,6 +181,7 @@ export interface ApplyReplacementRequest {
 
 export interface AddCourseToPathRequest {
   course_id: string;
+  phase_number?: number;
   position?: number;
 }
 

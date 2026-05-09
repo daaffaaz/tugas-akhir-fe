@@ -35,23 +35,21 @@ export function PhaseTabSlider({
   const [height, setHeight] = useState<number | undefined>(undefined);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Clamp activeTab kalau jumlah phase berkurang (mis. Kursus Tambahan jadi kosong)
-  useEffect(() => {
-    if (activeTab >= phaseGroups.length && phaseGroups.length > 0) {
-      setActiveTab(0);
-    }
-  }, [activeTab, phaseGroups.length]);
+  // Clamp ke range valid saat jumlah phase berkurang
+  const clampedTab = phaseGroups.length > 0
+    ? Math.min(activeTab, phaseGroups.length - 1)
+    : 0;
 
   // Track height aktif slide pakai ResizeObserver
   useEffect(() => {
-    const el = slideRefs.current[activeTab];
+    const el = slideRefs.current[clampedTab];
     if (!el) return;
     const update = () => setHeight(el.scrollHeight);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [activeTab, phaseGroups]);
+  }, [clampedTab, phaseGroups]);
 
   if (phaseGroups.length === 0) {
     return (
@@ -66,9 +64,9 @@ export function PhaseTabSlider({
   return (
     <div className="flex flex-col gap-4">
       {/* Tabs */}
-      <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1.5 [&::-webkit-scrollbar]:h-[3px] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-[#f3f4f6] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold">
         {phaseGroups.map((group, idx) => {
-          const isActive = activeTab === idx;
+          const isActive = clampedTab === idx;
           const isUnassigned = group.phase === null;
           return (
             <button
@@ -126,7 +124,7 @@ export function PhaseTabSlider({
       >
         <div
           className="flex transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${activeTab * 100}%)` }}
+          style={{ transform: `translateX(-${clampedTab * 100}%)` }}
         >
           {phaseGroups.map((group, idx) => (
             <div
@@ -139,10 +137,9 @@ export function PhaseTabSlider({
                 slideRefs.current[idx] = el;
               }}
               className="w-full shrink-0 self-start"
-              aria-hidden={idx !== activeTab}
-              // Sembunyikan dari interaksi pointer kalau bukan active
+              aria-hidden={idx !== clampedTab}
               style={{
-                pointerEvents: idx === activeTab ? "auto" : "none",
+                pointerEvents: idx === clampedTab ? "auto" : "none",
               }}
             >
               <PhaseCard
