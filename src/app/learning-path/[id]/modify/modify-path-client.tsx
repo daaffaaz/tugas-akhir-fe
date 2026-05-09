@@ -74,6 +74,7 @@ export function ModifyPathClient({ pathId }: Props) {
   });
   const [regenerateModal, setRegenerateModal] = useState(false);
   const [addCourseModal, setAddCourseModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -115,6 +116,19 @@ export function ModifyPathClient({ pathId }: Props) {
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
     } catch {
       await loadPath();
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      // Simpan urutan course
+      await reorderPathCourses(pathId, courses.map((c) => c.id));
+      // Navigasi kembali ke list
+      router.push("/learning-path");
+    } catch {
+      setError("Gagal menyimpan perubahan.");
+      setSaving(false);
     }
   }
 
@@ -318,10 +332,11 @@ export function ModifyPathClient({ pathId }: Props) {
               </p>
               <button
                 type="button"
-                onClick={() => router.push("/learning-path")}
-                className="flex w-full items-center justify-center gap-3 rounded bg-gold py-[17px] font-heading text-[12px] font-extrabold uppercase tracking-[1.2px] text-[#1c1c1c] hover:bg-dark hover:text-gold"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex w-full items-center justify-center gap-3 rounded bg-gold py-[17px] font-heading text-[12px] font-extrabold uppercase tracking-[1.2px] text-[#1c1c1c] hover:bg-dark hover:text-gold disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <SaveIcon /> Simpan Perubahan
+                {saving ? <SpinnerIcon /> : <SaveIcon />} {saving ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
             </div>
 
@@ -855,6 +870,14 @@ function ChartIcon() {
       <line x1="18" y1="20" x2="18" y2="10" />
       <line x1="12" y1="20" x2="12" y2="4" />
       <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden>
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   );
 }

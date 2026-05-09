@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
-import { getReplacementCandidates, applyCourseReplacement } from "@/lib/api/rag";
+import { getReplacementCandidates, applyCourseReplacement, deleteCourseFromPath } from "@/lib/api/rag";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { ReplaceCourseResponse, ReplacementCandidate } from "@/types/rag";
 import { cn } from "@/lib/utils";
@@ -78,7 +78,7 @@ export function ReplaceCourseModal({
     if (!confirm("Hapus course ini dari learning path?")) return;
     setDeleting(true);
     try {
-      await applyCourseReplacement(pathId, courseId, { action: "delete" });
+      await deleteCourseFromPath(pathId, courseId);
       onDeleted();
       onClose();
     } catch (err) {

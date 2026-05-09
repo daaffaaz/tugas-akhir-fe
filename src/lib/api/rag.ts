@@ -185,16 +185,16 @@ export async function getReplacementCandidates(
   }
 }
 
-/** PATCH /api/rag/learning-paths/{id}/courses/{course_id}/ — apply replacement or delete */
+/** POST /api/rag/learning-paths/{id}/courses/{course_id}/apply/ — apply a replacement course */
 export async function applyCourseReplacement(
   pathId: string,
   courseId: string,
-  payload: ApplyReplacementRequest | { action: "delete" },
-): Promise<{ detail: string; learning_path?: RagLearningPathResponse; deleted_position?: number }> {
+  payload: ApplyReplacementRequest,
+): Promise<{ detail: string }> {
   return apiFetch(
-    `/api/rag/learning-paths/${pathId}/courses/${courseId}/`,
+    `/api/rag/learning-paths/${pathId}/courses/${courseId}/apply/`,
     {
-      method: "PATCH",
+      method: "POST",
       body: payload,
       auth: true,
     },
