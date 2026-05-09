@@ -7,14 +7,10 @@ import { LearningPathCard } from "@/components/learning-path/LearningPathCard";
 import { primaryGoldCtaClass, primaryCtaIconHover } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
-const imgTechBackground =
-  "https://www.figma.com/api/mcp/asset/8138a0a8-d918-4d6c-9e75-ebb2545f2be9";
-const imgSparkleBtn =
-  "https://www.figma.com/api/mcp/asset/14acf7d8-16c3-43e5-835f-46552b35585e";
-const imgCompass =
-  "https://www.figma.com/api/mcp/asset/4ab9fb7e-2334-4de8-b654-832aff4615aa";
-const imgStatSparkle =
-  "https://www.figma.com/api/mcp/asset/c412f371-bb2d-4eaa-9d0c-456f3ac01e09";
+const imgTechBackground = "/images/8138a0a8-d918-4d6c-9e75-ebb2545f2be9.png";
+const imgCompass = "/images/4ab9fb7e-2334-4de8-b654-832aff4615aa.png";
+const imgStatSparkle = "/images/c412f371-bb2d-4eaa-9d0c-456f3ac01e09.png";
+const imgSparkleBtn = imgStatSparkle;
 
 type Props = {
   paths: LearningPathListItem[];
