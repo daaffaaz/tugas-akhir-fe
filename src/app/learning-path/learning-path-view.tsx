@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { LearningPathListItem } from "@/types/rag";
+import type { LearningPathListItem, GlobalProgressResponse } from "@/types/rag";
 import { LearningPathCard } from "@/components/learning-path/LearningPathCard";
 import { primaryGoldCtaClass, primaryCtaIconHover } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ const imgStatSparkle =
 
 type Props = {
   paths: LearningPathListItem[];
+  globalProgress?: GlobalProgressResponse | null;
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
@@ -39,7 +40,7 @@ function LearningPathFooter() {
   );
 }
 
-export function LearningPathView({ paths, loading, error, onRetry }: Props) {
+export function LearningPathView({ paths, globalProgress, loading, error, onRetry }: Props) {
   const isEmpty = paths.length === 0;
 
   // Loading state
@@ -91,11 +92,18 @@ export function LearningPathView({ paths, loading, error, onRetry }: Props) {
     );
   }
 
-  // Compute stats from paths data
-  const activePaths = paths.length;
-  const overallProgressPercent = activePaths > 0
-    ? Math.round(paths.reduce((acc, p) => acc + p.progress_percentage, 0) / activePaths)
-    : 0;
+  // Compute stats — prefer backend global progress, fallback ke kalkulasi lokal
+  const activePaths = globalProgress?.total_learning_paths ?? paths.length;
+  const overallProgressPercent = globalProgress
+    ? Math.round(globalProgress.overall_progress_percentage)
+    : activePaths > 0
+      ? Math.round(paths.reduce((acc, p) => acc + p.progress_percentage, 0) / activePaths)
+      : 0;
+  const completedPaths = globalProgress?.completed_paths ?? 0;
+  const inProgressPaths = globalProgress?.in_progress_paths ?? 0;
+  const notStartedPaths = globalProgress?.not_started_paths ?? 0;
+  const totalCourses = globalProgress?.total_courses ?? 0;
+  const totalCompletedCourses = globalProgress?.total_completed_courses ?? 0;
 
   if (isEmpty) {
     return (
@@ -226,7 +234,8 @@ export function LearningPathView({ paths, loading, error, onRetry }: Props) {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="flex h-48 flex-col justify-between rounded-xl border-l-4 border-gold bg-white px-8 py-8 shadow-sm md:h-auto md:min-h-[192px]">
+          {/* Card: Path aktif + breakdown */}
+          <div className="flex h-auto flex-col justify-between rounded-xl border-l-4 border-gold bg-white px-8 py-8 shadow-sm md:min-h-[192px]">
             <div className="h-6 w-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={imgStatSparkle} alt="" width={24} height={24} />
@@ -236,10 +245,34 @@ export function LearningPathView({ paths, loading, error, onRetry }: Props) {
                 {activePaths}
               </p>
               <p className="mt-1 font-body text-sm font-bold uppercase tracking-wide text-[#54595e]">
-                Path aktif
+                Learning Path
               </p>
+              {globalProgress && (
+                <div className="mt-4 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-emerald-400" />
+                    <span className="font-body text-xs text-[#54595e]">
+                      <span className="font-bold text-[#1c1c1c]">{completedPaths}</span> selesai
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-gold" />
+                    <span className="font-body text-xs text-[#54595e]">
+                      <span className="font-bold text-[#1c1c1c]">{inProgressPaths}</span> sedang berjalan
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-[#e5e7eb]" />
+                    <span className="font-body text-xs text-[#54595e]">
+                      <span className="font-bold text-[#1c1c1c]">{notStartedPaths}</span> belum dimulai
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Card: Progres umum */}
           <div className="relative overflow-hidden rounded-xl bg-[#1c1c1c] px-8 py-10 text-white md:col-span-2">
             <div
               className="pointer-events-none absolute -right-12 -top-12 size-64 rounded-full bg-gold/10 blur-3xl"
@@ -254,10 +287,15 @@ export function LearningPathView({ paths, loading, error, onRetry }: Props) {
             </div>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-gold"
+                className="h-full rounded-full bg-gold transition-all duration-500"
                 style={{ width: `${overallProgressPercent}%` }}
               />
             </div>
+            {globalProgress && totalCourses > 0 && (
+              <p className="mt-3 font-body text-sm opacity-60">
+                {totalCompletedCourses} dari {totalCourses} kursus selesai
+              </p>
+            )}
           </div>
         </div>
 

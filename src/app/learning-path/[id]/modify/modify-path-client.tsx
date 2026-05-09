@@ -15,8 +15,7 @@ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import {
   getRagLearningPath,
   toggleCourseComplete,
-  reorderPathCourses,
-  deleteCourseFromPath,
+  bulkUpdatePathCourses,
 } from "@/lib/api/rag";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { RagLearningPathResponse } from "@/types/rag";
@@ -251,13 +250,25 @@ export function ModifyPathClient({ pathId }: Props) {
     setSaving(true);
     setSaveError(null);
     try {
-      // 1. Delete courses
-      if (draftDeletedIds.size > 0) {
-        await Promise.all(
-          [...draftDeletedIds].map((id) =>
-            deleteCourseFromPath(pathId, id).catch(() => undefined),
-          ),
-        );
+      // 1. Cek apakah ada perubahan struktural (delete atau reorder)
+      const serverVisibleIds = serverCourses
+        .map((c) => c.id)
+        .filter((id) => !draftDeletedIds.has(id));
+      const draftVisibleIds = visibleDraftCourses.map((c) => c.id);
+      const isStructurallyDirty =
+        draftDeletedIds.size > 0 ||
+        serverVisibleIds.length !== draftVisibleIds.length ||
+        serverVisibleIds.some((id, i) => id !== draftVisibleIds[i]);
+
+      // Bulk-update: atomic replace seluruh daftar courses (delete implicit + reorder)
+      if (isStructurallyDirty) {
+        await bulkUpdatePathCourses(pathId, {
+          courses: visibleDraftCourses.map((c, i) => ({
+            course_id: c.course.id,
+            position: i + 1,
+            is_manually_added: c.is_manually_added,
+          })),
+        });
       }
 
       // 2. Toggle completion (XOR set: hanya yang netto berubah)
@@ -269,13 +280,7 @@ export function ModifyPathClient({ pathId }: Props) {
         );
       }
 
-      // 3. Reorder
-      const finalIds = visibleDraftCourses.map((c) => c.id);
-      if (finalIds.length > 0) {
-        await reorderPathCourses(pathId, finalIds);
-      }
-
-      // 4. Refresh canonical state
+      // 3. Refresh canonical state
       await loadPath();
     } catch (err) {
       setSaveError(
@@ -289,6 +294,7 @@ export function ModifyPathClient({ pathId }: Props) {
     draftDeletedIds,
     draftToggledIds,
     visibleDraftCourses,
+    serverCourses,
     pathId,
     loadPath,
   ]);
@@ -524,6 +530,7 @@ export function ModifyPathClient({ pathId }: Props) {
           onClose={() => setAddCourseModal(false)}
           pathId={pathId}
           onAdded={loadPath}
+          currentCourseCount={visibleDraftCourses.length}
         />
       )}
     </div>

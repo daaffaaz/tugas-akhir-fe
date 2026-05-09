@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AppBar } from "@/components/layout/AppBar";
-import { getLearningPathList } from "@/lib/api/rag";
-import type { LearningPathListItem } from "@/types/rag";
+import { getLearningPathList, getGlobalProgress } from "@/lib/api/rag";
+import type { LearningPathListItem, GlobalProgressResponse } from "@/types/rag";
 import { LearningPathView } from "./learning-path-view";
 
 export default function LearningPathPage() {
   const [paths, setPaths] = useState<LearningPathListItem[]>([]);
+  const [globalProgress, setGlobalProgress] = useState<GlobalProgressResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,8 +16,20 @@ export default function LearningPathPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getLearningPathList();
-      setPaths(data.results);
+      const [listData, progressData] = await Promise.allSettled([
+        getLearningPathList(),
+        getGlobalProgress(),
+      ]);
+
+      if (listData.status === "fulfilled") {
+        setPaths(listData.value.results);
+      } else {
+        throw listData.reason;
+      }
+
+      if (progressData.status === "fulfilled") {
+        setGlobalProgress(progressData.value);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat learning path.");
     } finally {
@@ -33,6 +46,7 @@ export default function LearningPathPage() {
       <AppBar />
       <LearningPathView
         paths={paths}
+        globalProgress={globalProgress}
         loading={loading}
         error={error}
         onRetry={loadPaths}

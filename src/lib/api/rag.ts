@@ -12,6 +12,8 @@ import {
   SimilarCoursesResponse,
   RegeneratePathResponse,
   LearningPathListItem,
+  GlobalProgressResponse,
+  BulkUpdateCoursesRequest,
 } from "@/types/rag";
 
 // ─── Course Recommendation ────────────────────────────────────────────────
@@ -242,13 +244,13 @@ export async function getSimilarCourses(
   );
 }
 
-/** POST /api/rag/learning-paths/courses/{id}/toggle-complete/ — toggle course completion */
+/** PATCH /api/learning-paths/courses/{lp_course_id}/toggle-complete/ — toggle course completion */
 export async function toggleCourseComplete(
-  courseId: string,
+  lpCourseId: string,
 ): Promise<{ is_completed: boolean }> {
   return apiFetch<{ is_completed: boolean }>(
-    `/api/rag/learning-paths/courses/${courseId}/toggle-complete/`,
-    { method: "POST", auth: true },
+    `/api/learning-paths/courses/${lpCourseId}/toggle-complete/`,
+    { method: "PATCH", auth: true },
   );
 }
 
@@ -262,6 +264,28 @@ export async function reorderPathCourses(
     {
       method: "PATCH",
       body: { course_ids: courseIds },
+      auth: true,
+    },
+  );
+}
+
+/** GET /api/learning-paths/progress/ — global progress ringkasan semua learning path user */
+export async function getGlobalProgress(): Promise<GlobalProgressResponse> {
+  return apiFetch<GlobalProgressResponse>("/api/learning-paths/progress/", {
+    auth: true,
+  });
+}
+
+/** PUT /api/learning-paths/{id}/bulk-update/ — atomic replace seluruh daftar courses */
+export async function bulkUpdatePathCourses(
+  pathId: string,
+  payload: BulkUpdateCoursesRequest,
+): Promise<RagLearningPathResponse> {
+  return apiFetch<RagLearningPathResponse>(
+    `/api/learning-paths/${pathId}/bulk-update/`,
+    {
+      method: "PUT",
+      body: payload,
       auth: true,
     },
   );

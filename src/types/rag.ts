@@ -257,3 +257,40 @@ export interface RegeneratePathResponse extends RagLearningPathResponse {
     completed_courses_preserved?: number;
   };
 }
+
+// ─── Global Progress ──────────────────────────────────────────────────────────
+
+export interface GlobalProgressLearningPath {
+  id: string;
+  title: string;
+  is_saved: boolean;
+  total_courses: number;
+  completed_courses: number;
+  progress_percentage: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GlobalProgressResponse {
+  total_learning_paths: number;
+  total_courses: number;
+  total_completed_courses: number;
+  overall_progress_percentage: number;
+  completed_paths: number;
+  in_progress_paths: number;
+  not_started_paths: number;
+  learning_paths: GlobalProgressLearningPath[];
+}
+
+// ─── Bulk Update ──────────────────────────────────────────────────────────────
+
+export interface BulkUpdateCourseItem {
+  course_id: string;
+  position: number;
+  is_manually_added?: boolean;
+}
+
+export interface BulkUpdateCoursesRequest {
+  title?: string;
+  courses: BulkUpdateCourseItem[];
+}
