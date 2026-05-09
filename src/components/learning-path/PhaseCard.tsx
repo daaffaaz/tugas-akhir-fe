@@ -473,6 +473,14 @@ function CourseRow({
             </div>
             <button
               type="button"
+              onClick={onToggle}
+              className="shrink-0 p-2 text-[#9ca3af] transition-colors hover:text-[#1c1c1c]"
+              aria-label="Tampilkan detail kursus"
+            >
+              <ChevronDownIcon />
+            </button>
+            <button
+              type="button"
               onClick={onDelete}
               className="shrink-0 p-2 text-[#9ca3af] hover:text-red-500"
               aria-label="Hapus kursus"
