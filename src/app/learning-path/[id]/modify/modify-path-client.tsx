@@ -303,42 +303,7 @@ export function ModifyPathClient({ pathId }: Props) {
               </div>
             )}
 
-            {/* Course list with vertical timeline */}
-            <div className="relative flex flex-col gap-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-heading text-sm font-extrabold uppercase tracking-wide text-[#9ca3af]">
-                  📋 Course List ({courses.length})
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setAddCourseModal(true)}
-                  className="flex items-center gap-2 rounded border border-[#e5e7eb] bg-white px-3 py-2 font-body text-[11px] font-bold text-[#6b7280] hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
-                >
-                  <PlusIcon /> Tambah
-                </button>
-              </div>
-              {/* Vertical timeline line */}
-              <div className="absolute bottom-0 start-6 top-0 w-px bg-[#e5e7eb]" />
-
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={courses.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-                  {courses.map((course, idx) => (
-                    <SortableCourseRow
-                      key={course.id}
-                      course={course}
-                      index={idx}
-                      expanded={expandedId === course.id}
-                      onToggle={() => setExpandedId(expandedId === course.id ? null : course.id)}
-                      onDelete={() => handleDeleteCourse(course.id)}
-                      onToggleComplete={() => handleToggleComplete(course.id)}
-                      onReplace={() => setReplaceModal({ open: true, courseId: course.id, courseTitle: course.course.title })}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-
             </div>
-          </div>
 
           {/* ── Right: sidebar (4 cols) ── */}
           <div className="hidden lg:col-span-4 lg:flex flex-col gap-6">
