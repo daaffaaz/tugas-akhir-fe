@@ -39,28 +39,49 @@ type Props = { pathId: string };
 
 function buildAugmented(path: RagLearningPathResponse): AugmentedCourse[] {
   const phases = path.questionnaire_snapshot?.phases ?? [];
-  const phaseMap = new Map<
+
+  // Map by course_id from snapshot (for original AI-assigned courses)
+  const courseIdMap = new Map<
     string,
     { phaseName: string; matchReason: string; learningObjectives: string[] }
   >();
+  // Map by phase_number (fallback for manually added courses not in snapshot)
+  const phaseNumberMap = new Map<
+    number,
+    { phaseName: string; learningObjectives: string[] }
+  >();
+
   for (const phase of phases) {
+    phaseNumberMap.set(phase.phase_number, {
+      phaseName: phase.phase_name,
+      learningObjectives: phase.learning_objectives,
+    });
     for (const pc of phase.courses) {
-      phaseMap.set(pc.course_id, {
+      courseIdMap.set(pc.course_id, {
         phaseName: phase.phase_name,
         matchReason: pc.match_reason,
         learningObjectives: phase.learning_objectives,
       });
     }
   }
+
   return [...path.courses]
     .sort((a, b) => a.position - b.position)
     .map((course) => {
-      const info = phaseMap.get(course.course.id) ?? phaseMap.get(course.id);
+      const fromSnapshot = courseIdMap.get(course.course.id);
+      if (fromSnapshot) {
+        return { ...course, ...fromSnapshot };
+      }
+      // Manually added course: resolve phaseName from phase_number field
+      const fromPhase =
+        course.phase_number != null
+          ? phaseNumberMap.get(course.phase_number)
+          : undefined;
       return {
         ...course,
-        phaseName: info?.phaseName,
-        matchReason: info?.matchReason,
-        learningObjectives: info?.learningObjectives,
+        phaseName: fromPhase?.phaseName,
+        matchReason: undefined,
+        learningObjectives: fromPhase?.learningObjectives,
       };
     });
 }
@@ -71,14 +92,12 @@ function buildPhaseGroups(
 ): PhaseGroup[] {
   const phases = path.questionnaire_snapshot?.phases ?? [];
   const groups: PhaseGroup[] = [];
-  const assignedIds = new Set<string>();
 
   for (const phase of phases) {
-    const phaseCourseIds = new Set(phase.courses.map((pc) => pc.course_id));
+    // Group by phase_number field on the course — authoritative for both AI and manually added
     const phaseCourses = draftCourses.filter(
-      (c) => phaseCourseIds.has(c.course.id) || phaseCourseIds.has(c.id),
+      (c) => c.phase_number === phase.phase_number,
     );
-    phaseCourses.forEach((c) => assignedIds.add(c.id));
     groups.push({
       phase,
       phaseLabel: phase.phase_name,
@@ -86,7 +105,8 @@ function buildPhaseGroups(
     });
   }
 
-  const unassigned = draftCourses.filter((c) => !assignedIds.has(c.id));
+  // Courses with phase_number === null are unassigned
+  const unassigned = draftCourses.filter((c) => c.phase_number === null);
   if (unassigned.length > 0) {
     groups.push({
       phase: null,
