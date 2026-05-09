@@ -56,6 +56,18 @@ export interface LearningPathCourse {
     currency: string;
     url: string;
     thumbnail_url: string;
+    platform?: {
+      id: string;
+      name: string;
+      base_url?: string;
+    };
+    reviews_count?: number;
+    description?: string;
+    duration?: string;
+    reading_count?: number;
+    assignment_count?: number;
+    what_you_learn?: string[];
+    tags?: string[];
   };
   position: number;
   is_completed: boolean;

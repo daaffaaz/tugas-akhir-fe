@@ -624,70 +624,118 @@ function CourseRow({ course, index, expanded, onToggle, onDelete, onToggleComple
                       </div>
 
                       {/* Rating + price */}
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-4">
                         {course.course.rating && parseFloat(course.course.rating) > 0 && (
                           <div className="flex items-center gap-1">
                             <StarIcon />
-                            <span className="font-body text-[14px] font-bold text-[#121212]">
+                            <span className="font-heading text-sm font-bold text-[#121212]">
                               {parseFloat(course.course.rating).toFixed(1)}
                             </span>
                           </div>
                         )}
+                        {course.course.reviews_count && course.course.reviews_count > 0 && (
+                          <span className="font-body text-xs text-[#9ca3af]">
+                            ({course.course.reviews_count.toLocaleString("id-ID")} reviews)
+                          </span>
+                        )}
                         {course.course.price && parseFloat(course.course.price) > 0 && (
                           <>
-                            <span className="font-body text-[14px] text-[#d1d5db]">|</span>
-                            <span className="font-body text-[14px] font-bold text-[#121212]">
+                            <span className="font-body text-sm text-[#d1d5db]">|</span>
+                            <span className="font-heading text-sm font-bold text-[#121212]">
                               {course.course.currency === "IDR"
                                 ? `IDR ${parseFloat(course.course.price).toLocaleString("id-ID")}`
                                 : `$${parseFloat(course.course.price).toFixed(2)}`}
                             </span>
                           </>
                         )}
+                        {course.course.platform?.name && (
+                          <>
+                            <span className="font-body text-sm text-[#d1d5db]">|</span>
+                            <span className="rounded border border-[#e5e7eb] bg-white px-2 py-0.5 font-body text-[10px] font-bold uppercase tracking-wide text-[#6b7280]">
+                              {course.course.platform.name}
+                            </span>
+                          </>
+                        )}
                       </div>
 
+                      {/* Description */}
+                      {course.course.description && (
+                        <p className="line-clamp-2 font-body text-sm leading-relaxed text-[#6b7280]">
+                          {course.course.description}
+                        </p>
+                      )}
+
                       {/* What you'll learn */}
-                      {course.learningObjectives && course.learningObjectives.length > 0 && (
+                      {(course.course.what_you_learn || course.learningObjectives) && (
                         <div className="flex flex-col gap-2 pt-2">
-                          <p className="font-body text-[12px] font-bold uppercase tracking-[0.6px] text-[#121212]">
+                          <p className="font-body text-xs font-bold uppercase tracking-[0.6px] text-[#121212]">
                             What You&apos;ll Learn:
                           </p>
-                          <div className="flex flex-col gap-[3.5px]">
-                            {course.learningObjectives.slice(0, 3).map((obj, i) => (
-                              <p key={i} className="font-body text-[14px] text-[#4b5563]">{obj}</p>
+                          <div className="flex flex-col gap-1">
+                            {(course.course.what_you_learn?.length ? course.course.what_you_learn : course.learningObjectives)?.slice(0, 4).map((obj, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <CheckIcon />
+                                <span className="font-body text-sm text-[#4b5563]">{obj}</span>
+                              </div>
                             ))}
                           </div>
                         </div>
                       )}
 
                       {/* Stats */}
-                      {course.course.video_hours && (
-                        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2">
-                          <div className="flex items-center gap-1">
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2">
+                        {course.course.video_hours && (
+                          <div className="flex items-center gap-1.5">
                             <ClockIcon />
-                            <span className="font-body text-[12px] font-bold text-[#6b7280]">
-                              {Math.round(parseFloat(course.course.video_hours))}h total
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <PlayCircleIcon />
-                            <span className="font-body text-[12px] font-bold text-[#6b7280]">
+                            <span className="font-body text-xs font-bold text-[#6b7280]">
                               {Math.round(parseFloat(course.course.video_hours))}h video
                             </span>
                           </div>
-                        </div>
-                      )}
+                        )}
+                        {course.course.duration && (
+                          <div className="flex items-center gap-1.5">
+                            <CalendarIcon />
+                            <span className="font-body text-xs font-bold text-[#6b7280]">
+                              {course.course.duration}
+                            </span>
+                          </div>
+                        )}
+                        {course.course.reading_count && course.course.reading_count > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <BookIcon />
+                            <span className="font-body text-xs font-bold text-[#6b7280]">
+                              {course.course.reading_count} readings
+                            </span>
+                          </div>
+                        )}
+                        {course.course.assignment_count && course.course.assignment_count > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <TaskIcon />
+                            <span className="font-body text-xs font-bold text-[#6b7280]">
+                              {course.course.assignment_count} assignments
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Tags */}
-                      {levelLabel && (
+                      {(levelLabel || course.course.tags) && (
                         <div className="flex flex-wrap gap-2 pt-2">
-                          <div className="rounded border border-[#e5e7eb] bg-white px-[9px] py-[5px]">
-                            <span className="font-body text-[10px] font-bold uppercase tracking-[0.5px] text-[#6b7280]">{levelLabel}</span>
-                          </div>
-                          {course.course.level && course.phaseName && course.course.level.toUpperCase() !== levelLabel && (
-                            <div className="rounded border border-[#e5e7eb] bg-white px-[9px] py-[5px]">
-                              <span className="font-body text-[10px] font-bold uppercase tracking-[0.5px] text-[#6b7280]">{course.course.level.toUpperCase()}</span>
+                          {levelLabel && (
+                            <div className="rounded border border-[#e5e7eb] bg-white px-2.5 py-1">
+                              <span className="font-body text-[10px] font-bold uppercase tracking-[0.5px] text-[#6b7280]">{levelLabel}</span>
                             </div>
                           )}
+                          {course.course.level && course.course.level.toUpperCase() !== levelLabel && (
+                            <div className="rounded border border-[#e5e7eb] bg-white px-2.5 py-1">
+                              <span className="font-body text-[10px] font-bold uppercase tracking-[0.5px] text-[#6b7280]">{course.course.level}</span>
+                            </div>
+                          )}
+                          {course.course.tags?.map((tag) => (
+                            <div key={tag} className="rounded-full border border-[#e5e7eb] bg-white px-2.5 py-1">
+                              <span className="font-body text-[10px] font-medium text-[#6b7280]">{tag}</span>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -870,6 +918,35 @@ function ChartIcon() {
       <line x1="18" y1="20" x2="18" y2="10" />
       <line x1="12" y1="20" x2="12" y2="4" />
       <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function BookIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
+function TaskIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
     </svg>
   );
 }
