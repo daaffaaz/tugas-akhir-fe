@@ -22,7 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { CSS } from "@dnd-kit/utilities";
-import { getRagLearningPath, toggleCourseComplete, reorderPathCourses } from "@/lib/api/rag";
+import { getRagLearningPath, toggleCourseComplete, reorderPathCourses, deleteCourseFromPath } from "@/lib/api/rag";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { RagLearningPathResponse, LearningPathCourse } from "@/types/rag";
 import { ReplaceCourseModal } from "@/components/learning-path/ReplaceCourseModal";
@@ -110,8 +110,12 @@ export function ModifyPathClient({ pathId }: Props) {
   }
 
   async function handleDeleteCourse(courseId: string) {
-    setCourses((prev) => prev.filter((c) => c.id !== courseId));
-    await loadPath();
+    try {
+      await deleteCourseFromPath(pathId, courseId);
+      setCourses((prev) => prev.filter((c) => c.id !== courseId));
+    } catch {
+      await loadPath();
+    }
   }
 
   async function handleDragEnd(event: DragEndEvent) {

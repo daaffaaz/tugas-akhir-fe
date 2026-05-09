@@ -241,68 +241,130 @@ function CandidateCard({
   const rankColor =
     rank === 0 ? "bg-gold text-[#121212]" : "bg-[#e5e7eb] text-[#6b7280]";
 
+  const formattedPrice =
+    candidate.price != null && candidate.price > 0
+      ? candidate.currency === "IDR"
+        ? `IDR ${candidate.price.toLocaleString("id-ID")}`
+        : `$${candidate.price.toFixed(2)}`
+      : null;
+
   return (
-    <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
-        <span className={cn("rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", rankColor)}>
-          {rankLabel}
-        </span>
-        <span className="flex items-center gap-1 text-xs font-bold text-[#6b7280]">
-          <StarIcon /> {candidate.rating?.toFixed(1) ?? "—"}
-        </span>
-      </div>
-
-      <h3 className="mb-1 font-heading text-sm font-bold text-dark">{candidate.title}</h3>
-      <p className="mb-2 text-xs text-[#6b7280]">
-        {candidate.instructor} &bull; {candidate.platform} &bull; {candidate.level} &bull; {candidate.duration}
-      </p>
-
-      {candidate.price != null && candidate.price > 0 && (
-        <p className="mb-3 text-xs font-bold text-[#1c1c1c]">
-          💰 {candidate.currency}{" "}
-          {candidate.currency === "IDR"
-            ? candidate.price.toLocaleString("id-ID")
-            : candidate.price.toFixed(2)}
-        </p>
+    <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm overflow-hidden">
+      {/* Course Thumbnail */}
+      {candidate.thumbnail_url && (
+        <div className="relative h-36 w-full overflow-hidden bg-[#e5e7eb]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={candidate.thumbnail_url}
+            alt={candidate.title}
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            <span className={cn("rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", rankColor)}>
+              {rankLabel}
+            </span>
+            {formattedPrice && (
+              <span className="rounded bg-white/90 px-2 py-0.5 text-[10px] font-bold text-[#121212]">
+                {formattedPrice}
+              </span>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* AI explanation */}
-      <div className="rounded border-l-4 border-gold bg-gold-light/30 px-3 py-2">
-        <div className="mb-1 flex items-center gap-1">
-          <LightbulbIcon />
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#121212]">AI Reason</span>
-        </div>
-        <p className="mb-1.5 text-xs leading-relaxed text-[#121212]">{candidate.match_reason}</p>
-        <p className="mb-1 text-xs font-bold text-[#374151]">
-          Best for: {candidate.best_for}
-        </p>
-        {candidate.potential_concerns && (
-          <p className="text-xs italic text-[#92400e]">
-            ⚠️ {candidate.potential_concerns}
-          </p>
-        )}
-      </div>
+      <div className="p-4">
+        {/* Title */}
+        <h3 className="mb-1 font-heading text-base font-bold leading-tight text-dark line-clamp-2">
+          {candidate.title}
+        </h3>
 
-      <button
-        type="button"
-        onClick={onSelect}
-        disabled={applying}
-        className={cn(
-          "mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-heading text-sm font-bold transition-colors",
-          applying
-            ? "cursor-wait border border-[#e5e7eb] bg-[#f3f4f6] text-[#9ca3af]"
-            : primaryGoldCtaClass("rounded-lg"),
-        )}
-      >
-        {applying ? (
-          <>
-            <SpinnerIcon />
-            Applying...
-          </>
-        ) : (
-          "Select This Replacement"
-        )}
-      </button>
+        {/* Instructor + Platform */}
+        <div className="mb-3 flex items-center gap-2 text-xs text-[#6b7280]">
+          <span className="font-medium">{candidate.instructor}</span>
+          <span className="text-[#d1d5db]">&bull;</span>
+          <span className="font-medium">{candidate.platform}</span>
+        </div>
+
+        {/* Stats row */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          {candidate.rating != null && candidate.rating > 0 && (
+            <div className="flex items-center gap-1">
+              <StarIcon />
+              <span className="font-heading text-sm font-bold text-[#121212]">
+                {candidate.rating.toFixed(1)}
+              </span>
+            </div>
+          )}
+          {candidate.level && (
+            <span className="rounded border border-[#e5e7eb] bg-white px-2 py-0.5 font-body text-[10px] font-bold uppercase tracking-wide text-[#6b7280]">
+              {candidate.level}
+            </span>
+          )}
+          {candidate.duration && (
+            <span className="flex items-center gap-1 text-xs text-[#6b7280]">
+              <ClockIcon />
+              {candidate.duration}
+            </span>
+          )}
+        </div>
+
+        {/* AI explanation */}
+        <div className="rounded-lg border-l-4 border-gold bg-gold-light/30 px-3 py-3">
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <SparkleIcon />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#121212]">AI Insight</span>
+          </div>
+          <p className="mb-2 text-xs leading-relaxed text-[#121212]">{candidate.match_reason}</p>
+          <p className="text-xs font-bold text-[#374151]">
+            ✅ Best for: {candidate.best_for}
+          </p>
+          {candidate.potential_concerns && (
+            <p className="mt-1.5 flex items-start gap-1.5 text-xs italic text-[#92400e]">
+              <WarningIcon />
+              <span>{candidate.potential_concerns}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Action row */}
+        <div className="mt-4 flex items-center gap-3">
+          {candidate.url && (
+            <a
+              href={candidate.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-3 py-2.5 font-body text-xs font-bold text-[#6b7280] transition-colors hover:border-[#9ca3af] hover:text-[#1c1c1c]"
+            >
+              <ExternalLinkIcon />
+              Lihat di Platform
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={onSelect}
+            disabled={applying}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-heading text-sm font-bold transition-colors",
+              applying
+                ? "cursor-wait border border-[#e5e7eb] bg-[#f3f4f6] text-[#9ca3af]"
+                : "bg-gold text-[#121212] hover:bg-dark hover:text-gold",
+            )}
+          >
+            {applying ? (
+              <>
+                <SpinnerIcon />
+                Applying...
+              </>
+            ) : (
+              <>
+                <CheckIcon />
+                Pilih
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -363,6 +425,53 @@ function LightbulbIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c335a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+    </svg>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0c335a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+      <circle cx="19" cy="4" r="1" fill="#0c335a" />
+      <circle cx="5" cy="18" r="1" fill="#0c335a" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
     </svg>
   );
 }
