@@ -517,16 +517,12 @@ function PhaseCourseTile({ index, phaseCourse, course, phase, onReplace, onRemov
 
               {/* What you'll learn */}
               {(() => {
-                // Handle both string (from BE) and array
                 const raw = course.course.what_you_learn ?? phase.learning_objectives;
-                if (raw == null) return null;
-                let items: string[] | null = null;
-                if (Array.isArray(raw)) {
-                  items = raw.length > 0 ? raw : null;
-                } else if (typeof raw === "string" && raw.length > 0) {
-                  items = raw.split(",").map((s) => s.trim()).filter(Boolean);
-                }
-                if (!items || items.length === 0) return null;
+                if (!raw) return null;
+                const items: string[] = Array.isArray(raw)
+                  ? raw
+                  : String(raw).split(",").map((s: string) => s.trim()).filter(Boolean);
+                if (items.length === 0) return null;
                 return (
                   <div className="space-y-1">
                     <p className="font-body text-xs font-bold uppercase tracking-[0.6px] text-[#121212]">
