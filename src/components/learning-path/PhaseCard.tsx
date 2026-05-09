@@ -516,21 +516,33 @@ function PhaseCourseTile({ index, phaseCourse, course, phase, onReplace, onRemov
               </div>
 
               {/* What you'll learn */}
-              {(course.course.what_you_learn || phase.learning_objectives) && (
-                <div className="space-y-1">
-                  <p className="font-body text-xs font-bold uppercase tracking-[0.6px] text-[#121212]">
-                    What You&apos;ll Learn:
-                  </p>
-                  <div className="flex flex-col gap-0.5">
-                    {(course.course.what_you_learn?.length ? course.course.what_you_learn : phase.learning_objectives)?.slice(0, 4).map((obj, i) => (
-                      <div key={i} className="flex items-start gap-1.5">
-                        <CheckIcon />
-                        <span className="font-body text-xs text-[#4b5563]">{obj}</span>
-                      </div>
-                    ))}
+              {(() => {
+                // Handle both string (from BE) and array
+                const raw = course.course.what_you_learn ?? phase.learning_objectives;
+                if (raw == null) return null;
+                let items: string[] | null = null;
+                if (Array.isArray(raw)) {
+                  items = raw.length > 0 ? raw : null;
+                } else if (typeof raw === "string" && raw.length > 0) {
+                  items = raw.split(",").map((s) => s.trim()).filter(Boolean);
+                }
+                if (!items || items.length === 0) return null;
+                return (
+                  <div className="space-y-1">
+                    <p className="font-body text-xs font-bold uppercase tracking-[0.6px] text-[#121212]">
+                      What You&apos;ll Learn:
+                    </p>
+                    <div className="flex flex-col gap-0.5">
+                      {items.slice(0, 4).map((obj, i) => (
+                        <div key={i} className="flex items-start gap-1.5">
+                          <CheckIcon />
+                          <span className="font-body text-xs text-[#4b5563]">{obj}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Tags */}
               {course.course.tags && course.course.tags.length > 0 && (
