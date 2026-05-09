@@ -1,8 +1,4 @@
-"use client";
-
-import { useState } from "react";
 import type { RagLearningPathResponse } from "@/types/rag";
-import { cn } from "@/lib/utils";
 
 interface Props {
   path: RagLearningPathResponse;
@@ -11,7 +7,6 @@ interface Props {
 }
 
 export function PathOverviewCard({ path, courseCount, completedCount }: Props) {
-  const [showTips, setShowTips] = useState(false);
   const snap = path.questionnaire_snapshot;
   const title = snap?.roadmap_title ?? path.title;
   const overview = snap?.overview ?? path.description;
@@ -19,8 +14,6 @@ export function PathOverviewCard({ path, courseCount, completedCount }: Props) {
   const totalHours = snap?.total_hours_estimated;
   const difficulty = snap?.difficulty_curve;
   const targetSkills = snap?.target_skills ?? [];
-  const tips = snap?.tips_for_success ?? [];
-  const nextSteps = snap?.next_steps_after_roadmap ?? [];
   const progress = path.progress_percentage ?? 0;
   const regenCount = (path as unknown as { regenerate_count?: number }).regenerate_count;
 
@@ -90,59 +83,6 @@ export function PathOverviewCard({ path, courseCount, completedCount }: Props) {
         </div>
       )}
 
-      {/* Collapsible: Tips & Next Steps */}
-      {(tips.length > 0 || nextSteps.length > 0) && (
-        <div className="rounded border border-[#e5e7eb] bg-white shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
-          <button
-            type="button"
-            onClick={() => setShowTips((s) => !s)}
-            className="flex w-full items-center justify-between p-5"
-          >
-            <span className="font-heading text-[12px] font-extrabold uppercase tracking-[1.5px] text-[#1c1c1c]">
-              Tips & Langkah Selanjutnya
-            </span>
-            <span className={cn("text-[#9ca3af] transition-transform", showTips && "rotate-180")}>
-              <ChevronDownIcon />
-            </span>
-          </button>
-          {showTips && (
-            <div className="space-y-5 border-t border-[#f3f4f6] p-5">
-              {tips.length > 0 && (
-                <div>
-                  <p className="mb-2 font-heading text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#1c1c1c]">
-                    Tips for Success
-                  </p>
-                  <ul className="space-y-1">
-                    {tips.map((t, i) => (
-                      <li key={i} className="flex items-start gap-2 font-body text-[14px] text-[#4b5563]">
-                        <span className="mt-[6px] size-1.5 shrink-0 rounded-full bg-gold" />
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {nextSteps.length > 0 && (
-                <div>
-                  <p className="mb-2 font-heading text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#1c1c1c]">
-                    Next Steps After This Path
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {nextSteps.map((step, i) => (
-                      <span
-                        key={i}
-                        className="rounded border border-[#e5e7eb] bg-[#fafafa] px-[9px] py-[5px] font-body text-[10px] font-bold uppercase tracking-[0.5px] text-[#4b5563]"
-                      >
-                        {step}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -195,10 +135,3 @@ function CheckCircleIcon() {
   );
 }
 
-function ChevronDownIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}

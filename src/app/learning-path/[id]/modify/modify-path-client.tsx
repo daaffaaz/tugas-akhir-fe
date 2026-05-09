@@ -19,14 +19,12 @@ import {
   deleteCourseFromPath,
 } from "@/lib/api/rag";
 import { QuestionnaireRequiredError } from "@/types/rag";
-import type {
-  RagLearningPathResponse,
-  LearningPathPhase,
-} from "@/types/rag";
+import type { RagLearningPathResponse } from "@/types/rag";
+import { type AugmentedCourse } from "@/components/learning-path/PhaseCard";
 import {
-  PhaseCard,
-  type AugmentedCourse,
-} from "@/components/learning-path/PhaseCard";
+  PhaseTabSlider,
+  type PhaseGroup,
+} from "@/components/learning-path/PhaseTabSlider";
 import { PathOverviewCard } from "@/components/learning-path/PathOverviewCard";
 import { ReplaceCourseModal } from "@/components/learning-path/ReplaceCourseModal";
 import { RegeneratePathModal } from "@/components/learning-path/RegeneratePathModal";
@@ -35,12 +33,6 @@ import { AppBar } from "@/components/layout/AppBar";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface PhaseGroup {
-  phase: LearningPathPhase | null;
-  phaseLabel: string;
-  courses: AugmentedCourse[];
-}
 
 type Props = { pathId: string };
 
@@ -373,32 +365,20 @@ export function ModifyPathClient({ pathId }: Props) {
               completedCount={completedCount}
             />
 
-            {/* Phase groups with single top-level DndContext */}
+            {/* Phase tab slider with single top-level DndContext */}
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
             >
-              <div className="flex flex-col gap-8">
-                {phaseGroups.map((group, idx) => (
-                  <PhaseCard
-                    key={
-                      group.phase
-                        ? `phase-${group.phase.phase_number}`
-                        : "unassigned"
-                    }
-                    phase={group.phase}
-                    phaseLabel={group.phaseLabel}
-                    courses={group.courses}
-                    isLast={idx === phaseGroups.length - 1}
-                    expandedCourseId={expandedId}
-                    onToggleExpand={handleToggleExpand}
-                    onToggleComplete={handleToggleComplete}
-                    onDelete={handleDelete}
-                    onReplace={handleReplace}
-                  />
-                ))}
-              </div>
+              <PhaseTabSlider
+                phaseGroups={phaseGroups}
+                expandedCourseId={expandedId}
+                onToggleExpand={handleToggleExpand}
+                onToggleComplete={handleToggleComplete}
+                onDelete={handleDelete}
+                onReplace={handleReplace}
+              />
             </DndContext>
 
             {/* Tambah kursus */}
@@ -413,7 +393,7 @@ export function ModifyPathClient({ pathId }: Props) {
 
           {/* Right: sidebar */}
           <div className="flex flex-col gap-6 lg:col-span-4">
-            {/* Manajemen Path */}
+            {/* Manajemen Path — Save + Discard + Regenerate dalam satu container */}
             <div className="rounded border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_1px_rgba(0,0,0,0.05)] sm:p-[33px]">
               <div className="mb-5 flex items-center justify-between gap-2">
                 <p className="font-heading text-[10px] font-extrabold uppercase tracking-[2.5px] text-[#9ca3af]">
@@ -425,6 +405,8 @@ export function ModifyPathClient({ pathId }: Props) {
                   </span>
                 )}
               </div>
+
+              {/* Primary: Simpan Perubahan */}
               <button
                 type="button"
                 onClick={handleSave}
@@ -434,6 +416,8 @@ export function ModifyPathClient({ pathId }: Props) {
                 {saving ? <SpinnerIcon /> : <SaveIcon />}
                 {saving ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
+
+              {/* Secondary: Batal Perubahan (only when dirty) */}
               {isDirty && !saving && (
                 <button
                   type="button"
@@ -443,11 +427,28 @@ export function ModifyPathClient({ pathId }: Props) {
                   <UndoIcon /> Batal Perubahan
                 </button>
               )}
+
               {saveError && (
                 <p className="mt-3 font-body text-[12px] text-red-600">
                   {saveError}
                 </p>
               )}
+
+              {/* Separator */}
+              <div className="my-5 border-t border-[#f3f4f6]" />
+
+              {/* Regenerate */}
+              <p className="mb-3 font-heading text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#9ca3af]">
+                Aksi Lainnya
+              </p>
+              <button
+                type="button"
+                onClick={() => setRegenerateModal(true)}
+                disabled={saving}
+                className="flex w-full items-center justify-center gap-2 rounded border border-[#e5e7eb] bg-white py-[14px] font-heading text-[11px] font-extrabold uppercase tracking-[1.2px] text-[#6b7280] transition-colors hover:border-[#1c1c1c] hover:text-[#1c1c1c] disabled:opacity-50"
+              >
+                <RefreshIcon /> Regenerate Path
+              </button>
             </div>
 
             {/* Catatan */}
@@ -465,14 +466,13 @@ export function ModifyPathClient({ pathId }: Props) {
               </p>
             </div>
 
-            {/* Regenerate */}
-            <button
-              type="button"
-              onClick={() => setRegenerateModal(true)}
-              className="flex w-full items-center justify-center gap-2 rounded border border-[#e5e7eb] bg-white px-4 py-3 font-heading text-[10px] font-extrabold uppercase tracking-[1px] text-[#6b7280] transition-colors hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
-            >
-              <RefreshIcon /> Regenerate Path
-            </button>
+            {/* Tips & Langkah Selanjutnya (collapsible) */}
+            <TipsSidebarCard
+              tips={path.questionnaire_snapshot?.tips_for_success ?? []}
+              nextSteps={
+                path.questionnaire_snapshot?.next_steps_after_roadmap ?? []
+              }
+            />
           </div>
         </div>
       </div>
@@ -525,6 +525,81 @@ export function ModifyPathClient({ pathId }: Props) {
           pathId={pathId}
           onAdded={loadPath}
         />
+      )}
+    </div>
+  );
+}
+
+// ─── Tips Sidebar Card ───────────────────────────────────────────────────────
+
+function TipsSidebarCard({
+  tips,
+  nextSteps,
+}: {
+  tips: string[];
+  nextSteps: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  if (tips.length === 0 && nextSteps.length === 0) return null;
+
+  return (
+    <div className="overflow-hidden rounded border border-[#e5e7eb] bg-white shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        className="flex w-full items-center justify-between gap-2 px-6 py-4 text-left transition-colors hover:bg-[#fafafa] sm:px-[33px]"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-3">
+          <LightbulbIcon />
+          <p className="font-heading text-[10px] font-extrabold uppercase tracking-[2px] text-[#1c1c1c]">
+            Tips & Langkah Selanjutnya
+          </p>
+        </div>
+        <span
+          className={`shrink-0 text-[#9ca3af] transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <ChevronDownIcon />
+        </span>
+      </button>
+      {open && (
+        <div className="space-y-5 border-t border-[#f3f4f6] px-6 py-5 sm:px-[33px]">
+          {tips.length > 0 && (
+            <div>
+              <p className="mb-2 font-heading text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#1c1c1c]">
+                Tips for Success
+              </p>
+              <ul className="space-y-1.5">
+                {tips.map((t, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 font-body text-[13px] leading-[20px] text-[#4b5563]"
+                  >
+                    <span className="mt-[6px] size-1.5 shrink-0 rounded-full bg-gold" />
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {nextSteps.length > 0 && (
+            <div>
+              <p className="mb-2 font-heading text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#1c1c1c]">
+                Next Steps After This Path
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {nextSteps.map((step, i) => (
+                  <span
+                    key={i}
+                    className="rounded border border-[#e5e7eb] bg-[#fafafa] px-[9px] py-[5px] font-body text-[10px] font-bold uppercase tracking-[0.5px] text-[#4b5563]"
+                  >
+                    {step}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -663,6 +738,42 @@ function RefreshIcon() {
       <polyline points="23 4 23 10 17 10" />
       <polyline points="1 20 1 14 7 14" />
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function LightbulbIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#1c1c1c"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
     </svg>
   );
 }
