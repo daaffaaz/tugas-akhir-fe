@@ -227,10 +227,14 @@ export interface LearningPathListItem {
   id: string;
   title: string;
   topic_input: string;
+  description?: string;
   is_saved: boolean;
   total_courses: number;
   completed_courses: number;
   progress_percentage: number;
+  difficulty?: string;
+  total_duration_weeks?: number;
+  target_skills?: string[];
   regenerate_count: number;
   created_at: string;
   updated_at: string;
