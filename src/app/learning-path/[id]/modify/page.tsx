@@ -1,4 +1,3 @@
-import { getRagLearningPath } from "@/lib/api/rag";
 import { ModifyPathClient } from "./modify-path-client";
 
 type Props = { params: Promise<{ id: string }> };
