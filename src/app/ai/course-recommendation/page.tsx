@@ -8,7 +8,6 @@ import { TopicInput } from "@/components/ai/TopicInput";
 import { ContextTextarea } from "@/components/ai/ContextTextarea";
 import { CourseRecommendationCard } from "@/components/ai/CourseRecommendationCard";
 import { RegenerateSection } from "@/components/ai/RegenerateSection";
-import { LoadingState } from "@/components/ai/LoadingState";
 import { EmptyState } from "@/components/ai/EmptyState";
 import { QuestionnaireGuard } from "@/components/ai/QuestionnaireGuard";
 import { useCourseRecommendation } from "@/hooks/useCourseRecommendation";
@@ -194,9 +193,32 @@ function PageContent() {
           </div>
         </div>
 
-        {/* Loading */}
+        {/* Skeleton loading */}
         {isLoading && !hasGenerated && (
-          <LoadingState />
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-56 rounded-lg bg-[#e5e7eb]" />
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+              {Array.from({ length: count }).map((_, i) => (
+                <div key={i} className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
+                  <div className="h-44 w-full bg-[#e5e7eb]" />
+                  <div className="p-5 space-y-3">
+                    <div className="flex gap-2">
+                      <div className="h-5 w-20 rounded bg-[#e5e7eb]" />
+                      <div className="h-5 w-16 rounded bg-[#e5e7eb]" />
+                    </div>
+                    <div className="h-5 w-3/4 rounded bg-[#e5e7eb]" />
+                    <div className="h-4 w-1/2 rounded bg-[#e5e7eb]" />
+                    <div className="h-4 w-1/3 rounded bg-[#e5e7eb]" />
+                    <div className="mt-4 h-24 rounded-lg bg-[#e5e7eb]" />
+                    <div className="flex gap-2">
+                      <div className="h-10 w-28 rounded-lg bg-[#e5e7eb]" />
+                      <div className="h-10 flex-1 rounded-lg bg-[#e5e7eb]" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Results */}

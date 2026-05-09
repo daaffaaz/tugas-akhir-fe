@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { getSimilarCourses, addCourseToPath } from "@/lib/api/rag";
+import { toast } from "@/context/ToastContext";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { SimilarCourse } from "@/types/rag";
 import { primaryGoldCtaClass, primaryGoldCtaClassSoftDisabled } from "@/lib/primary-cta";
@@ -58,6 +59,7 @@ export function AddCourseToPathModal({
     setAddingId(course.course_id);
     try {
       await addCourseToPath(pathId, { course_id: course.course_id });
+      toast.success("Kursus berhasil ditambahkan ✓");
       onAdded();
       onClose();
     } catch (err) {

@@ -23,6 +23,7 @@ import {
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { CSS } from "@dnd-kit/utilities";
 import { getRagLearningPath, toggleCourseComplete, reorderPathCourses, deleteCourseFromPath } from "@/lib/api/rag";
+import { toast } from "@/context/ToastContext";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { RagLearningPathResponse, LearningPathCourse } from "@/types/rag";
 import { ReplaceCourseModal } from "@/components/learning-path/ReplaceCourseModal";
@@ -107,6 +108,10 @@ export function ModifyPathClient({ pathId }: Props) {
     try {
       const res = await toggleCourseComplete(courseId);
       setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, is_completed: res.is_completed } : c));
+      if (res.is_completed) {
+        const courseTitle = courses.find((c) => c.id === courseId)?.course.title;
+        toast.success(courseTitle ? `"${courseTitle.substring(0, 30)}..." selesai ✓` : "Kursus ditandai selesai ✓");
+      }
     } catch { /* silent */ }
   }
 
@@ -114,7 +119,15 @@ export function ModifyPathClient({ pathId }: Props) {
     try {
       await deleteCourseFromPath(pathId, courseId);
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
+      toast.success("Kursus dihapus", {
+        undoAction: async () => {
+          // Undo by re-fetching the path
+          await loadPath();
+          toast.info("Perubahan dibatalkan.");
+        },
+      });
     } catch {
+      toast.error("Gagal menghapus kursus.");
       await loadPath();
     }
   }
@@ -124,9 +137,11 @@ export function ModifyPathClient({ pathId }: Props) {
     try {
       // Simpan urutan course
       await reorderPathCourses(pathId, courses.map((c) => c.id));
+      toast.success("Perubahan tersimpan ✓");
       // Navigasi kembali ke list
       router.push("/learning-path");
     } catch {
+      toast.error("Gagal menyimpan perubahan.");
       setError("Gagal menyimpan perubahan.");
       setSaving(false);
     }
@@ -540,8 +555,10 @@ function CourseRow({ course, index, expanded, onToggle, onDelete, onToggleComple
               <div
                 onClick={(e) => { e.stopPropagation(); onToggleComplete(); }}
                 className={cn(
-                  "flex size-5 shrink-0 cursor-pointer items-center justify-center rounded border-2",
-                  isCompleted ? "border-gold bg-gold" : "border-[#d1d5db] bg-white",
+                  "flex size-5 shrink-0 cursor-pointer items-center justify-center rounded border-2 transition-all duration-200",
+                  isCompleted
+                    ? "scale-110 border-gold bg-gold"
+                    : "border-[#d1d5db] bg-white hover:border-gold hover:scale-105",
                 )}
               >
                 {isCompleted && <CheckIcon />}
@@ -752,10 +769,12 @@ function CourseRow({ course, index, expanded, onToggle, onDelete, onToggleComple
                       </button>
                       <button
                         type="button"
-                        onClick={() => isCompleted ? onToggleComplete() : onToggleComplete()}
+                        onClick={() => onToggleComplete()}
                         className={cn(
-                          "rounded border-2 border-transparent px-[26px] py-[14px] font-body text-[14px] font-bold shadow-[0px_1px_1px_rgba(0,0,0,0.05)]",
-                          isCompleted ? "bg-green-500 text-white" : "bg-gold text-[#121212]",
+                          "rounded border-2 border-transparent px-[26px] py-[14px] font-body text-[14px] font-bold shadow-[0px_1px_1px_rgba(0,0,0,0.05)] transition-all duration-200",
+                          isCompleted
+                            ? "bg-green-500 text-white scale-105"
+                            : "bg-gold text-[#121212] hover:bg-dark hover:text-gold",
                         )}
                       >
                         {isCompleted ? "✓ Selesai" : "Selesai dipelajari"}
@@ -826,7 +845,18 @@ function TrashIcon() {
 
 function CheckIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1c1c1c" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#1c1c1c"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="animate-check-bounce"
+      aria-hidden
+    >
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );

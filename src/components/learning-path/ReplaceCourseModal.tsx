@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { getReplacementCandidates, applyCourseReplacement, deleteCourseFromPath } from "@/lib/api/rag";
+import { toast } from "@/context/ToastContext";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { ReplaceCourseResponse, ReplacementCandidate } from "@/types/rag";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ export function ReplaceCourseModal({
         new_course_id: candidate.course_id,
         replacement_reason: context || undefined,
       });
+      toast.success("Kursus berhasil diganti ✓");
       onReplaced();
       onClose();
     } catch (err) {
