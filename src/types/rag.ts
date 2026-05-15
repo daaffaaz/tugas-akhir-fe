@@ -289,6 +289,7 @@ export interface GlobalProgressResponse {
 export interface BulkUpdateCourseItem {
   course_id: string;
   position: number;
+  phase_number?: number | null;
   is_manually_added?: boolean;
 }
 

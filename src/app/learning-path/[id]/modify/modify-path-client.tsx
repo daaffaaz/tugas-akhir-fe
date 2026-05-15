@@ -291,11 +291,13 @@ export function ModifyPathClient({ pathId }: Props) {
         serverVisibleIds.some((id, i) => id !== draftVisibleIds[i]);
 
       // Bulk-update: atomic replace seluruh daftar courses (delete implicit + reorder)
+      // phase_number harus di-include — BE default ke null kalau kosong, kursus jadi pindah ke "Kursus Tambahan"
       if (isStructurallyDirty) {
         await bulkUpdatePathCourses(pathId, {
           courses: visibleDraftCourses.map((c, i) => ({
             course_id: c.course.id,
             position: i + 1,
+            phase_number: c.phase_number,
             is_manually_added: c.is_manually_added,
           })),
         });
