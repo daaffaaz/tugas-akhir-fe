@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/context/ToastContext";
 import {
   getProfile,
   getPreferences,
@@ -332,10 +333,12 @@ export function ProfileForm({ questions }: Props) {
       setBaselineAnswers({ ...answers });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+      toast.success("Preferensi berhasil disimpan ✓");
     } catch (err: unknown) {
-      setSaveError(
-        err instanceof Error ? err.message : "Gagal menyimpan perubahan.",
-      );
+      const message =
+        err instanceof Error ? err.message : "Gagal menyimpan perubahan.";
+      setSaveError(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
