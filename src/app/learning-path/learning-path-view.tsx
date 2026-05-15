@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { LearningPathListItem, GlobalProgressResponse } from "@/types/rag";
 import { LearningPathCard } from "@/components/learning-path/LearningPathCard";
+import { Footer } from "@/components/layout/Footer";
 import { primaryGoldCtaClass, primaryCtaIconHover } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
 
@@ -19,22 +20,6 @@ type Props = {
   error?: string | null;
   onRetry?: () => void;
 };
-
-function LearningPathFooter() {
-  return (
-    <footer className="mt-auto border-t border-[rgba(209,209,209,0.35)] bg-[#fdfdfd]">
-      <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-6 px-8 py-12 text-[11px] font-bold uppercase tracking-wide text-[#4a4a4a] md:flex-row md:items-center">
-        <p>© 2024 PrecisionLearn IT. All rights reserved.</p>
-        <div className="flex flex-wrap gap-8">
-          <span className="cursor-pointer hover:text-dark">Legal</span>
-          <span className="cursor-pointer hover:text-dark">Support</span>
-          <span className="cursor-pointer hover:text-dark">Privacy policy</span>
-          <span className="cursor-pointer hover:text-dark">Terms of service</span>
-        </div>
-      </div>
-    </footer>
-  );
-}
 
 export function LearningPathView({ paths, globalProgress, loading, error, onRetry }: Props) {
   const isEmpty = paths.length === 0;
@@ -60,7 +45,7 @@ export function LearningPathView({ paths, globalProgress, loading, error, onRetr
             ))}
           </div>
         </div>
-        <LearningPathFooter />
+        <Footer />
       </>
     );
   }
@@ -83,7 +68,7 @@ export function LearningPathView({ paths, globalProgress, loading, error, onRetr
             )}
           </div>
         </div>
-        <LearningPathFooter />
+        <Footer />
       </>
     );
   }
@@ -193,7 +178,7 @@ export function LearningPathView({ paths, globalProgress, loading, error, onRetr
             </div>
           </div>
         </div>
-        <LearningPathFooter />
+        <Footer />
       </>
     );
   }
@@ -301,7 +286,7 @@ export function LearningPathView({ paths, globalProgress, loading, error, onRetr
           ))}
         </div>
       </div>
-      <LearningPathFooter />
+      <Footer />
     </>
   );
 }

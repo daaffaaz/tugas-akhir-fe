@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
 import { AppBar } from "@/components/layout/AppBar";
+import { Footer } from "@/components/layout/Footer";
 import { CourseDetailClient } from "./course-detail-client";
 
 type Props = { params: Promise<{ id: string }> };
@@ -11,17 +10,7 @@ export default async function CourseDetailPage({ params }: Props) {
     <div className="flex min-h-screen flex-col bg-[#fdfdfd] font-body text-dark">
       <AppBar />
       <CourseDetailClient courseId={id} />
-      <footer className="mt-auto border-t border-[rgba(209,209,209,0.35)] bg-[#fdfdfd]">
-        <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-6 px-8 py-12 text-[11px] font-bold uppercase tracking-wide text-[#4a4a4a] md:flex-row md:items-center">
-          <p>© 2024 PersonaLearn. All rights reserved.</p>
-          <div className="flex flex-wrap gap-8">
-            <span className="cursor-pointer hover:text-dark">Legal</span>
-            <span className="cursor-pointer hover:text-dark">Support</span>
-            <span className="cursor-pointer hover:text-dark">Privacy policy</span>
-            <span className="cursor-pointer hover:text-dark">Terms of service</span>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

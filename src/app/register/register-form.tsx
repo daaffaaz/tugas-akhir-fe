@@ -314,12 +314,9 @@ export function RegisterForm() {
           </div>
         </form>
 
-        <footer className="space-y-4 border-t border-border-soft pt-8">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-dark/50">
-            Dukungan
-          </p>
+        <footer className="border-t border-border-soft pt-8">
           <p className="text-center text-[10px] tracking-wide text-dark/40">
-            © 2026 PersonaLearn
+            © {new Date().getFullYear()} PersonaLearn
           </p>
         </footer>
       </div>

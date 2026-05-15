@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { AppBar } from "@/components/layout/AppBar";
+import { Footer } from "@/components/layout/Footer";
 import { CreatePathForm } from "./create-path-form";
 
 export default function CreateLearningPathPage() {
@@ -27,25 +27,7 @@ export default function CreateLearningPathPage() {
           <CreatePathForm />
         </div>
       </main>
-      <footer className="mt-auto border-t border-[#e0e0e0] bg-[#fdfdfd]">
-        <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-6 px-8 py-12 text-[11px] font-bold uppercase tracking-wide text-[#4a4a4a] md:flex-row md:items-center">
-          <p>© 2024 PrecisionLearn IT. All rights reserved.</p>
-          <div className="flex flex-wrap gap-8">
-            <Link href="#" className="hover:text-dark">
-              Legal
-            </Link>
-            <Link href="#" className="hover:text-dark">
-              Support
-            </Link>
-            <Link href="#" className="hover:text-dark">
-              Privacy policy
-            </Link>
-            <Link href="#" className="hover:text-dark">
-              Terms of service
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

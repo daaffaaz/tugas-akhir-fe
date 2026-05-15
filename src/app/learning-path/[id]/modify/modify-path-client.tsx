@@ -29,6 +29,7 @@ import { ReplaceCourseModal } from "@/components/learning-path/ReplaceCourseModa
 import { RegeneratePathModal } from "@/components/learning-path/RegeneratePathModal";
 import { AddCourseToPathModal, type AvailablePhase } from "@/components/learning-path/AddCourseToPathModal";
 import { AppBar } from "@/components/layout/AppBar";
+import { Footer } from "@/components/layout/Footer";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -512,22 +513,7 @@ export function ModifyPathClient({ pathId }: Props) {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-[#ededed] bg-white">
-        <div className="mx-auto flex max-w-[1280px] flex-col items-start gap-4 px-4 py-8 font-body text-[12px] font-bold uppercase tracking-[0.3px] text-[#4a4a4a] sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-12">
-          <p>© 2024 PersonaLearn IT. All rights reserved.</p>
-          <div className="flex flex-wrap gap-6 sm:gap-8">
-            <span className="cursor-pointer hover:text-[#1c1c1c]">Legal</span>
-            <span className="cursor-pointer hover:text-[#1c1c1c]">Support</span>
-            <span className="cursor-pointer hover:text-[#1c1c1c]">
-              Privacy Policy
-            </span>
-            <span className="cursor-pointer hover:text-[#1c1c1c]">
-              Terms of Service
-            </span>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Modals */}
       {replaceModal.open && (

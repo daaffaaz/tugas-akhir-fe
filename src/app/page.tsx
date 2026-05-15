@@ -211,11 +211,10 @@ export default function Home() {
 
         {/* Stats */}
         <section className="bg-white py-16 md:py-20">
-          <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-8 px-6 md:grid-cols-4 md:gap-8">
+          <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-8 px-6 sm:grid-cols-3 md:gap-8">
             {[
               { value: "3+", label: "Integrasi Platform" },
-              { value: "120+", label: "Courses" },
-              { value: "20+", label: "Jalur belajar" },
+              { value: "300+", label: "Courses" },
               { value: "<3 mins", label: "AI Response" },
             ].map((s) => (
               <div key={s.label} className="flex flex-col gap-2 text-center">

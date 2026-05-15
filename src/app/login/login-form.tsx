@@ -269,13 +269,9 @@ export function LoginForm() {
           </Link>
         </p>
 
-        <footer className="space-y-4 border-t border-border-soft pt-8">
-          <div className="flex justify-between text-[10px] font-bold uppercase tracking-wide text-dark/50">
-            <span>Dukungan</span>
-            <span>Partnerships</span>
-          </div>
+        <footer className="border-t border-border-soft pt-8">
           <p className="text-center text-[10px] tracking-wide text-dark/40">
-            © 2026 PersonaLearn.
+            © {new Date().getFullYear()} PersonaLearn
           </p>
         </footer>
       </div>

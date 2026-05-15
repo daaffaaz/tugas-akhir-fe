@@ -613,17 +613,6 @@ export function ProfileForm({ questions }: Props) {
         </section>
       </div>
 
-      <footer className="mt-16 border-t border-[rgba(209,209,209,0.35)] pt-10">
-        <div className="flex flex-col justify-between gap-6 text-[11px] font-bold uppercase tracking-wide text-[#4a4a4a] md:flex-row md:items-center">
-          <p>© 2024 PrecisionLearn IT. All rights reserved.</p>
-          <div className="flex flex-wrap gap-8">
-            <span className="cursor-pointer hover:text-dark">Legal</span>
-            <span className="cursor-pointer hover:text-dark">Support</span>
-            <span className="cursor-pointer hover:text-dark">Privacy policy</span>
-            <span className="cursor-pointer hover:text-dark">Terms of service</span>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }
