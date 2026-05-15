@@ -13,11 +13,25 @@ export type ApiQuestion = {
    * The letter is the value sent back as `answer_option` when submitting.
    */
   options_json: Record<string, string>;
+  /** 1-based ordering across the whole questionnaire. */
+  order_number?: number;
+  /** Logical grouping label, e.g. "PROFIL & DEMOGRAFI". */
+  section?: string;
+  /** Stable machine key for this question, e.g. "age_group". */
+  variable_key?: string;
 };
 
 export type QuestionnaireAnswer = {
   question_id: string;
   answer_option: string;
+};
+
+export type StoredQuestionnaireAnswer = {
+  id: string;
+  question_id: string;
+  order_number: number;
+  answer_option: string;
+  submitted_at: string;
 };
 
 type QuestionsApiResponse =
@@ -76,6 +90,30 @@ export async function submitQuestionnaire(
 ): Promise<void> {
   return apiFetch<void>("/api/users/questionnaire/", {
     method: "POST",
+    body: answers,
+    auth: true,
+  });
+}
+
+/**
+ * Fetches the authenticated user's stored questionnaire answers.
+ * Returns an empty array if the user hasn't submitted yet.
+ */
+export async function getUserAnswers(): Promise<StoredQuestionnaireAnswer[]> {
+  return apiFetch<StoredQuestionnaireAnswer[]>("/api/users/questionnaire/", {
+    auth: true,
+  });
+}
+
+/**
+ * Updates one or more stored answers. Only include the changed answers.
+ * Requires the questionnaire to have been submitted first via POST.
+ */
+export async function patchUserAnswers(
+  answers: QuestionnaireAnswer[],
+): Promise<StoredQuestionnaireAnswer[]> {
+  return apiFetch<StoredQuestionnaireAnswer[]>("/api/users/questionnaire/", {
+    method: "PATCH",
     body: answers,
     auth: true,
   });

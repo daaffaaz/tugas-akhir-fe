@@ -1,100 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
 import { useAuth } from "@/context/AuthContext";
-import { Tooltip } from "@/components/ui/Tooltip";
 import {
   getProfile,
   getPreferences,
   updateProfile,
   updatePreferences,
   uploadAvatar,
-  type UserPreferences,
 } from "@/lib/api/profile";
-
-// ---------------------------------------------------------------------------
-// Preference state type — mirrors UserPreferences but with non-null defaults
-// ---------------------------------------------------------------------------
-
-type PrefsForm = {
-  job_title: string;
-  age_range: string;
-  education_level: string;
-  operating_system: "windows" | "macos" | "linux";
-  git_skill: "none" | "basic" | "intermediate";
-  cli_level: number;
-  logic_level: number;
-  weekly_hours: string;
-  study_slot: "pagi" | "malam" | "kerja" | "weekend";
-  material_format: "video" | "text" | "interactive" | "project";
-  theory_practice: "theory" | "balanced" | "practice";
-  evaluation_type: "quiz" | "coding_challenge" | "project";
-  target_role: "backend" | "devops" | "data_ml";
-  main_goal: "career_change" | "upskilling" | "hobby";
-  ram_gb: "<8" | "8-16" | "16+";
-  internet_quality: "unstable" | "stable" | "very_stable";
-  budget_idr: "<500k" | "500k-2m" | ">2m";
-};
-
-const defaultPrefs: PrefsForm = {
-  job_title: "",
-  age_range: "18-24",
-  education_level: "S1",
-  operating_system: "windows",
-  git_skill: "none",
-  cli_level: 0,
-  logic_level: 0,
-  weekly_hours: "<4",
-  study_slot: "malam",
-  material_format: "interactive",
-  theory_practice: "balanced",
-  evaluation_type: "coding_challenge",
-  target_role: "devops",
-  main_goal: "upskilling",
-  ram_gb: "<8",
-  internet_quality: "stable",
-  budget_idr: "<500k",
-};
-
-function apiPrefsToForm(raw: UserPreferences): PrefsForm {
-  return {
-    job_title: raw.job_title ?? "",
-    age_range: raw.age_range ?? defaultPrefs.age_range,
-    education_level: raw.education_level ?? defaultPrefs.education_level,
-    operating_system:
-      (raw.operating_system as PrefsForm["operating_system"]) ??
-      defaultPrefs.operating_system,
-    git_skill:
-      (raw.git_skill as PrefsForm["git_skill"]) ?? defaultPrefs.git_skill,
-    cli_level: raw.cli_level ?? 0,
-    logic_level: raw.logic_level ?? 0,
-    weekly_hours: raw.weekly_hours ?? defaultPrefs.weekly_hours,
-    study_slot:
-      (raw.study_slot as PrefsForm["study_slot"]) ?? defaultPrefs.study_slot,
-    material_format:
-      (raw.material_format as PrefsForm["material_format"]) ??
-      defaultPrefs.material_format,
-    theory_practice:
-      (raw.theory_practice as PrefsForm["theory_practice"]) ??
-      defaultPrefs.theory_practice,
-    evaluation_type:
-      (raw.evaluation_type as PrefsForm["evaluation_type"]) ??
-      defaultPrefs.evaluation_type,
-    target_role:
-      (raw.target_role as PrefsForm["target_role"]) ?? defaultPrefs.target_role,
-    main_goal:
-      (raw.main_goal as PrefsForm["main_goal"]) ?? defaultPrefs.main_goal,
-    ram_gb: (raw.ram_gb as PrefsForm["ram_gb"]) ?? defaultPrefs.ram_gb,
-    internet_quality:
-      (raw.internet_quality as PrefsForm["internet_quality"]) ??
-      defaultPrefs.internet_quality,
-    budget_idr:
-      (raw.budget_idr as PrefsForm["budget_idr"]) ?? defaultPrefs.budget_idr,
-  };
-}
+import {
+  getUserAnswers,
+  patchUserAnswers,
+  type ApiQuestion,
+  type QuestionnaireAnswer,
+} from "@/lib/api/questionnaire";
 
 // ---------------------------------------------------------------------------
 // Small UI helpers
@@ -105,49 +28,6 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
     <label className="block px-1 pb-2 font-heading text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">
       {children}
     </label>
-  );
-}
-
-function FieldLabelWithTooltip({
-  children,
-  tooltip,
-}: {
-  children: React.ReactNode;
-  tooltip: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 px-1 pb-2">
-      <label className="font-heading text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">
-        {children}
-      </label>
-      <Tooltip content={tooltip} side="right">
-        <button
-          type="button"
-          className="flex size-4 items-center justify-center rounded-full bg-[#e5e7eb] text-[#6b7280] hover:bg-[#d1d5db]"
-          aria-label={`Info: ${tooltip}`}
-        >
-          <InfoIconInline />
-        </button>
-      </Tooltip>
-    </div>
-  );
-}
-
-function InfoIconInline() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      aria-hidden
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4M12 8h.01" />
-    </svg>
   );
 }
 
@@ -183,73 +63,6 @@ function TextInput({
   );
 }
 
-function Select({
-  value,
-  onChange,
-  options,
-  disabled,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  disabled?: boolean;
-}) {
-  return (
-    <select
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      className={cn(
-        "w-full cursor-pointer appearance-none rounded border border-[#e5e7eb] bg-[#f7f7f7] bg-[length:12px] bg-[right_1rem_center] bg-no-repeat px-4 py-3 font-body text-sm text-dark outline-none ring-gold/30 focus:ring-2",
-        disabled && "cursor-not-allowed opacity-60",
-      )}
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-      }}
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function SegmentedScale({
-  value,
-  onChange,
-  labels,
-  disabled,
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  labels: string[];
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {labels.map((label, i) => (
-        <button
-          key={label}
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(i)}
-          className={cn(
-            "flex-1 rounded border px-2 py-2 text-center font-body text-[10px] font-bold uppercase leading-tight tracking-wide transition-colors min-w-[4.5rem]",
-            value === i
-              ? "border-gold bg-gold text-dark"
-              : "border-[#e5e7eb] bg-white text-muted hover:border-gold/50",
-            disabled && "cursor-not-allowed opacity-60",
-          )}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function ProfileSkeleton() {
   return (
     <div className="animate-pulse space-y-3">
@@ -260,10 +73,97 @@ function ProfileSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
+// Question card — renders a single question with selectable options
+// ---------------------------------------------------------------------------
+
+function QuestionCard({
+  question,
+  selected,
+  onSelect,
+  disabled,
+  index,
+}: {
+  question: ApiQuestion;
+  selected: string | null;
+  onSelect: (option: string) => void;
+  disabled?: boolean;
+  index: number;
+}) {
+  const options = Object.entries(question.options_json);
+  // For ≤4 short options use grid; for ≥5 or longer text use stacked list.
+  const useGrid =
+    options.length <= 4 &&
+    options.every(([, label]) => label.length <= 28);
+
+  return (
+    <div className="rounded border border-[#e5e7eb] bg-white p-5">
+      <div className="mb-3 flex items-start gap-3">
+        <span className="mt-[2px] flex size-6 shrink-0 items-center justify-center rounded-full bg-gold/15 font-heading text-[10px] font-extrabold text-dark">
+          {index}
+        </span>
+        <div className="flex-1">
+          <p className="font-body text-sm font-semibold leading-[20px] text-[#1f2937]">
+            {question.question_text}
+          </p>
+          {selected === null && (
+            <p className="mt-1 font-body text-[11px] font-semibold text-amber-700">
+              Belum dijawab
+            </p>
+          )}
+        </div>
+      </div>
+      <div
+        className={cn(
+          "gap-2",
+          useGrid
+            ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2"
+            : "flex flex-col",
+        )}
+      >
+        {options.map(([key, label]) => {
+          const isActive = selected === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelect(key)}
+              className={cn(
+                "flex items-center gap-2 rounded border px-3 py-2.5 text-left font-body text-[13px] transition-colors",
+                isActive
+                  ? "border-gold bg-gold/15 font-bold text-dark"
+                  : "border-[#e5e7eb] bg-white text-[#4b5563] hover:border-gold/50",
+                disabled && "cursor-not-allowed opacity-60",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-5 shrink-0 items-center justify-center rounded-full font-heading text-[10px] font-extrabold",
+                  isActive
+                    ? "bg-dark text-gold"
+                    : "bg-[#f3f4f6] text-[#6b7280]",
+                )}
+              >
+                {key}
+              </span>
+              <span className="flex-1 leading-tight">{label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
-export function ProfileForm() {
+type Props = {
+  questions: ApiQuestion[];
+};
+
+export function ProfileForm({ questions }: Props) {
   const router = useRouter();
   const { signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -273,22 +173,34 @@ export function ProfileForm() {
     router.push("/login");
   }
 
-  // --- Backend-managed fields ---
+  // --- Profile (full_name, email, avatar) ---
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [questionnaireCompletedAt, setQuestionnaireCompletedAt] = useState<
+    string | null
+  >(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
-  // --- Preference fields (GET/PATCH /api/users/preferences/) ---
-  const [prefs, setPrefs] = useState<PrefsForm>(defaultPrefs);
+  // --- Preferences (only job_title is editable here, the rest derive from
+  // questionnaire answers in BE). Loaded for legacy compatibility. ---
+  const [jobTitle, setJobTitle] = useState("");
   const [prefsLoading, setPrefsLoading] = useState(true);
+
+  // --- Questionnaire answers: { [question_id]: option_key } ---
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answersLoading, setAnswersLoading] = useState(true);
+  const [answersError, setAnswersError] = useState<string | null>(null);
 
   // --- Baseline snapshots for Discard ---
   const [baselineName, setBaselineName] = useState("");
-  const [baselinePrefs, setBaselinePrefs] = useState<PrefsForm>(defaultPrefs);
+  const [baselineJobTitle, setBaselineJobTitle] = useState("");
+  const [baselineAnswers, setBaselineAnswers] = useState<
+    Record<string, string>
+  >({});
 
   // --- Save state ---
   const [isSaving, setIsSaving] = useState(false);
@@ -302,6 +214,7 @@ export function ProfileForm() {
         setBaselineName(p.full_name);
         setEmail(p.email);
         setAvatarUrl(p.avatar_url ?? null);
+        setQuestionnaireCompletedAt(p.questionnaire_completed_at);
       })
       .catch((err: unknown) => {
         setProfileError(
@@ -312,21 +225,55 @@ export function ProfileForm() {
 
     getPreferences()
       .then((raw) => {
-        const loaded = apiPrefsToForm(raw);
-        setPrefs(loaded);
-        setBaselinePrefs(loaded);
+        setJobTitle(raw.job_title ?? "");
+        setBaselineJobTitle(raw.job_title ?? "");
       })
       .catch(() => {
         // If preferences don't exist yet, fall back to defaults silently
       })
       .finally(() => setPrefsLoading(false));
+
+    getUserAnswers()
+      .then((list) => {
+        const map: Record<string, string> = {};
+        for (const a of list) {
+          map[a.question_id] = a.answer_option;
+        }
+        setAnswers(map);
+        setBaselineAnswers(map);
+      })
+      .catch((err: unknown) => {
+        setAnswersError(
+          err instanceof Error
+            ? err.message
+            : "Gagal memuat jawaban questionnaire.",
+        );
+      })
+      .finally(() => setAnswersLoading(false));
   }, []);
 
-  function setPrefsField<K extends keyof PrefsForm>(
-    key: K,
-    value: PrefsForm[K],
-  ) {
-    setPrefs((p) => ({ ...p, [key]: value }));
+  // Group questions by section, preserving order_number order.
+  const sections = useMemo(() => {
+    const sorted = [...questions].sort(
+      (a, b) => (a.order_number ?? 0) - (b.order_number ?? 0),
+    );
+    const map = new Map<string, ApiQuestion[]>();
+    for (const q of sorted) {
+      const sec = q.section ?? "Lainnya";
+      if (!map.has(sec)) map.set(sec, []);
+      map.get(sec)!.push(q);
+    }
+    return [...map.entries()].map(([section, items]) => ({ section, items }));
+  }, [questions]);
+
+  // Total answered count for the summary bar.
+  const answeredCount = useMemo(
+    () => questions.filter((q) => answers[q.id]).length,
+    [questions, answers],
+  );
+
+  function selectAnswer(questionId: string, option: string) {
+    setAnswers((prev) => ({ ...prev, [questionId]: option }));
   }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -350,7 +297,8 @@ export function ProfileForm() {
 
   const onDiscard = () => {
     setFullName(baselineName);
-    setPrefs(baselinePrefs);
+    setJobTitle(baselineJobTitle);
+    setAnswers(baselineAnswers);
     setSaveError(null);
     setSaveSuccess(false);
   };
@@ -359,19 +307,34 @@ export function ProfileForm() {
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
+
+    // Compute deltas — only PATCH what actually changed.
+    const nameChanged = fullName !== baselineName;
+    const jobTitleChanged = jobTitle !== baselineJobTitle;
+    const changedAnswers: QuestionnaireAnswer[] = [];
+    for (const q of questions) {
+      const next = answers[q.id];
+      if (next && next !== baselineAnswers[q.id]) {
+        changedAnswers.push({ question_id: q.id, answer_option: next });
+      }
+    }
+
     try {
-      const [updatedProfile] = await Promise.all([
-        updateProfile({ full_name: fullName }),
-        updatePreferences(prefs),
-      ]);
-      setFullName(updatedProfile.full_name);
-      setBaselineName(updatedProfile.full_name);
-      setBaselinePrefs(prefs);
+      const ops: Promise<unknown>[] = [];
+      if (nameChanged) ops.push(updateProfile({ full_name: fullName }));
+      if (jobTitleChanged) ops.push(updatePreferences({ job_title: jobTitle }));
+      if (changedAnswers.length > 0) ops.push(patchUserAnswers(changedAnswers));
+
+      await Promise.all(ops);
+
+      setBaselineName(fullName);
+      setBaselineJobTitle(jobTitle);
+      setBaselineAnswers({ ...answers });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: unknown) {
       setSaveError(
-        err instanceof Error ? err.message : "Gagal menyimpan profil.",
+        err instanceof Error ? err.message : "Gagal menyimpan perubahan.",
       );
     } finally {
       setIsSaving(false);
@@ -382,7 +345,11 @@ export function ProfileForm() {
     avatarUrl ??
     "/images/670578d8-e120-42d5-b51a-63caa7234ecf.png";
 
-  const isFormDisabled = profileLoading || prefsLoading;
+  const isFormDisabled = profileLoading || prefsLoading || answersLoading;
+  const isDirty =
+    fullName !== baselineName ||
+    jobTitle !== baselineJobTitle ||
+    questions.some((q) => answers[q.id] !== baselineAnswers[q.id]);
 
   return (
     <main className="mx-auto w-full max-w-[1152px] flex-1 px-6 pb-24 pt-12 md:px-16">
@@ -504,7 +471,7 @@ export function ProfileForm() {
       <div className="grid gap-10 lg:grid-cols-12">
         {/* Left: Informasi diri */}
         <section className="lg:col-span-4">
-          <div className="rounded border border-[#e0e0e0] bg-white p-8 shadow-sm">
+          <div className="sticky top-24 rounded border border-[#e0e0e0] bg-white p-8 shadow-sm">
             <h2 className="mb-6 flex items-center gap-2 font-heading text-lg font-extrabold text-[#1f2937]">
               <span className="text-gold">&#9679;</span> Informasi Diri
             </h2>
@@ -529,363 +496,85 @@ export function ProfileForm() {
               <div>
                 <FieldLabel>Pekerjaan</FieldLabel>
                 <TextInput
-                  value={prefs.job_title}
-                  onChange={(v) => setPrefsField("job_title", v)}
+                  value={jobTitle}
+                  onChange={setJobTitle}
                   disabled={isFormDisabled}
+                  placeholder="Contoh: Software Engineer"
                 />
               </div>
-              <div className="border-t border-[#f0f0f0] pt-6">
-                <p className="mb-4 font-heading text-[10px] font-extrabold uppercase tracking-[0.25em] text-[#9ca3af]">
-                  Profil &amp; demografi
+            </div>
+
+            <div className="mt-8 border-t border-[#f0f0f0] pt-6">
+              <p className="mb-2 font-heading text-[10px] font-extrabold uppercase tracking-[0.25em] text-[#9ca3af]">
+                Status questionnaire
+              </p>
+              {answersLoading ? (
+                <div className="h-4 w-32 animate-pulse rounded bg-[#f3f4f6]" />
+              ) : (
+                <p className="font-body text-sm text-[#374151]">
+                  {answeredCount} dari {questions.length} pertanyaan terjawab
+                  {questionnaireCompletedAt && (
+                    <span className="block pt-1 text-[11px] text-[#9ca3af]">
+                      Diselesaikan pertama kali:{" "}
+                      {new Date(questionnaireCompletedAt).toLocaleDateString(
+                        "id-ID",
+                        { dateStyle: "medium" },
+                      )}
+                    </span>
+                  )}
                 </p>
-                <div className="space-y-4">
-                  <div>
-                    <FieldLabel>Usia</FieldLabel>
-                    <Select
-                      value={prefs.age_range}
-                      onChange={(v) => setPrefsField("age_range", v)}
-                      disabled={isFormDisabled}
-                      options={[
-                        { value: "18-24", label: "18-24 th" },
-                        { value: "25-34", label: "25-34 th" },
-                        { value: "35+", label: "35+ th" },
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Pendidikan terakhir</FieldLabel>
-                    <Select
-                      value={prefs.education_level}
-                      onChange={(v) => setPrefsField("education_level", v)}
-                      disabled={isFormDisabled}
-                      options={[
-                        { value: "SMA", label: "SMA" },
-                        { value: "D3", label: "D3" },
-                        { value: "S1", label: "S1 (Sarjana)" },
-                        { value: "S2", label: "S2" },
-                      ]}
-                    />
-                  </div>
-                </div>
+              )}
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
+                <div
+                  className="h-full bg-gold transition-[width] duration-500"
+                  style={{
+                    width: `${
+                      questions.length > 0
+                        ? Math.round((answeredCount / questions.length) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
               </div>
             </div>
           </div>
         </section>
 
-        {/* Right: preferences */}
+        {/* Right: 32 questionnaire questions grouped by section */}
         <section className="space-y-8 lg:col-span-8">
-          <div className="rounded border border-[#e0e0e0] bg-white p-8 shadow-sm">
-            <h2 className="mb-6 font-heading text-lg font-extrabold text-[#1f2937]">
-              Preferensi pembelajaran
-            </h2>
-            <div className="space-y-6">
-              <div>
-                <p className="mb-2 font-body text-sm font-bold text-[#374151]">
-                  Kompetensi teknis
-                </p>
-                <FieldLabel>Sistem operasi</FieldLabel>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      ["windows", "Windows"],
-                      ["macos", "macOS"],
-                      ["linux", "Linux"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      disabled={isFormDisabled}
-                      onClick={() => setPrefsField("operating_system", key)}
-                      className={cn(
-                        "rounded-full px-4 py-2 font-body text-sm font-bold transition-colors",
-                        prefs.operating_system === key
-                          ? "bg-gold text-dark"
-                          : "bg-[#f3f4f6] text-[#4b5563] hover:bg-gold/30",
-                        isFormDisabled && "cursor-not-allowed opacity-60",
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <FieldLabelWithTooltip tooltip="Kemampuan menggunakan sistem version control Git untuk melacak perubahan kode">
-                Kemampuan Git
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.git_skill}
-                  onChange={(v) => setPrefsField("git_skill", v as PrefsForm["git_skill"])}
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "none", label: "Belum pernah" },
-                    { value: "basic", label: "Bisa git clone & push dasar" },
-                    { value: "intermediate", label: "Branching & merge nyaman" },
-                  ]}
-                />
-              </div>
-              <div>
-                <FieldLabelWithTooltip tooltip="Tingkat kenyamanan menggunakan command-line interface atau terminal">
-                CLI / terminal
-              </FieldLabelWithTooltip>
-                <SegmentedScale
-                  value={prefs.cli_level}
-                  onChange={(n) => setPrefsField("cli_level", n)}
-                  disabled={isFormDisabled}
-                  labels={["Tidak pernah", "Jarang", "Sering", "Sangat sering"]}
-                />
-              </div>
-              <div>
-                <FieldLabelWithTooltip tooltip="Kemampuan memecahkan masalah logika pemrograman dan algoritma">
-                Programming logic
-              </FieldLabelWithTooltip>
-                <SegmentedScale
-                  value={prefs.logic_level}
-                  onChange={(n) => setPrefsField("logic_level", n)}
-                  disabled={isFormDisabled}
-                  labels={[
-                    "Tidak paham",
-                    "Teori saja",
-                    "Bisa coding",
-                    "Mahir",
-                  ]}
-                />
-              </div>
+          {answersError && (
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 font-body text-sm font-semibold text-red-700">
+              {answersError}
             </div>
-          </div>
+          )}
 
-          <div className="rounded border border-[#e0e0e0] bg-white p-8 shadow-sm">
-            <h2 className="mb-6 font-heading text-lg font-extrabold text-[#1f2937]">
-              Ketersediaan waktu
-            </h2>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <FieldLabelWithTooltip tooltip="Alokasi waktu belajar per minggu yang realistis untuk Anda">
-                Alokasi per minggu
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.weekly_hours}
-                  onChange={(v) => setPrefsField("weekly_hours", v)}
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "<4", label: "< 4 jam" },
-                    { value: "4-8", label: "4 - 8 jam" },
-                    { value: "8-14", label: "8 - 14 jam (Moderat)" },
-                    { value: "15+", label: "15+ jam" },
-                  ]}
-                />
+          {sections.map(({ section, items }) => (
+            <div
+              key={section}
+              className="rounded border border-[#e0e0e0] bg-white p-8 shadow-sm"
+            >
+              <div className="mb-6 flex items-baseline justify-between gap-4">
+                <h2 className="font-heading text-lg font-extrabold capitalize text-[#1f2937]">
+                  {section.toLowerCase()}
+                </h2>
+                <span className="font-heading text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">
+                  {items.filter((q) => answers[q.id]).length} / {items.length}
+                </span>
               </div>
-              <div className="md:col-span-2">
-                <FieldLabel>Waktu belajar utama</FieldLabel>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {(
-                    [
-                      ["pagi", "Pagi hari"],
-                      ["malam", "Malam hari"],
-                      ["kerja", "Jam kerja"],
-                      ["weekend", "Weekend"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <label
-                      key={key}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-2 rounded border px-3 py-3 font-body text-sm font-semibold",
-                        prefs.study_slot === key
-                          ? "border-gold bg-gold/10"
-                          : "border-[#e5e7eb] hover:border-gold/40",
-                        isFormDisabled && "cursor-not-allowed opacity-60",
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="slot"
-                        className="accent-gold"
-                        disabled={isFormDisabled}
-                        checked={prefs.study_slot === key}
-                        onChange={() => setPrefsField("study_slot", key)}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
+              <div className="space-y-4">
+                {items.map((q) => (
+                  <QuestionCard
+                    key={q.id}
+                    index={q.order_number ?? 0}
+                    question={q}
+                    selected={answers[q.id] ?? null}
+                    onSelect={(opt) => selectAnswer(q.id, opt)}
+                    disabled={isFormDisabled || isSaving}
+                  />
+                ))}
               </div>
             </div>
-          </div>
-
-          <div className="rounded border border-[#e0e0e0] bg-white p-8 shadow-sm">
-            <h2 className="mb-6 font-heading text-lg font-extrabold text-[#1f2937]">
-              Gaya belajar
-            </h2>
-            <FieldLabel>Format materi paling efektif</FieldLabel>
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(
-                [
-                  ["video", "Video"],
-                  ["text", "Teks"],
-                  ["interactive", "Interactive"],
-                  ["project", "Project"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  disabled={isFormDisabled}
-                  onClick={() => setPrefsField("material_format", key)}
-                  className={cn(
-                    "rounded-lg border-2 py-6 text-center font-heading text-xs font-extrabold uppercase tracking-wider",
-                    prefs.material_format === key
-                      ? "border-gold bg-gold/10 text-dark"
-                      : "border-[#e5e7eb] text-muted hover:border-gold/40",
-                    isFormDisabled && "cursor-not-allowed opacity-60",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <FieldLabelWithTooltip tooltip="Rasio antara belajar teori (konsep, dokumentasi) dan praktik (coding, proyek nyata)">
-                Komposisi teori vs praktik
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.theory_practice}
-                  onChange={(v) =>
-                    setPrefsField("theory_practice", v as PrefsForm["theory_practice"])
-                  }
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "theory", label: "Teori lebih banyak" },
-                    { value: "balanced", label: "Seimbang (50/50)" },
-                    { value: "practice", label: "Praktik lebih banyak" },
-                  ]}
-                />
-              </div>
-              <div>
-                <FieldLabelWithTooltip tooltip="Metode evaluasi yang Anda sukai untuk mengukur pemahaman: kuis, tantangan coding, atau proyek">
-                Evaluasi favorit
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.evaluation_type}
-                  onChange={(v) =>
-                    setPrefsField(
-                      "evaluation_type",
-                      v as PrefsForm["evaluation_type"],
-                    )
-                  }
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "quiz", label: "Quiz" },
-                    { value: "coding_challenge", label: "Coding Challenge" },
-                    { value: "project", label: "Proyek akhir" },
-                  ]}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded border border-[#e0e0e0] bg-white p-8 shadow-sm">
-            <h2 className="mb-6 font-heading text-lg font-extrabold text-[#1f2937]">
-              Goals &amp; motivasi
-            </h2>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <FieldLabelWithTooltip tooltip="Peran IT yang ingin Anda capai sebagai Zielprofilschutz Ihrer Karriere">
-                Target role IT
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.target_role}
-                  onChange={(v) =>
-                    setPrefsField("target_role", v as PrefsForm["target_role"])
-                  }
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "backend", label: "Backend" },
-                    { value: "devops", label: "DevOps/Cloud" },
-                    { value: "data_ml", label: "Data/ML" },
-                  ]}
-                />
-              </div>
-              <div>
-                <FieldLabel>Tujuan utama</FieldLabel>
-                <Select
-                  value={prefs.main_goal}
-                  onChange={(v) =>
-                    setPrefsField("main_goal", v as PrefsForm["main_goal"])
-                  }
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "career_change", label: "Karir baru" },
-                    { value: "upskilling", label: "Promosi/Upskilling" },
-                    { value: "hobby", label: "Hobi" },
-                  ]}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded border border-[#e0e0e0] bg-white p-8 shadow-sm">
-            <h2 className="mb-6 font-heading text-lg font-extrabold text-[#1f2937]">
-              Hardware &amp; kendala
-            </h2>
-            <div className="grid gap-6 md:grid-cols-3">
-              <div>
-                <FieldLabelWithTooltip tooltip="Kapasitas RAM laptop Anda untuk menentukan course yang sesuai (editing video, VM, dll)">
-                RAM laptop
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.ram_gb}
-                  onChange={(v) =>
-                    setPrefsField("ram_gb", v as PrefsForm["ram_gb"])
-                  }
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "<8", label: "< 8GB" },
-                    { value: "8-16", label: "8 - 16GB" },
-                    { value: "16+", label: "16GB+" },
-                  ]}
-                />
-              </div>
-              <div>
-                <FieldLabelWithTooltip tooltip="Kualitas koneksi internet Anda untuk streaming video dan download course">
-                Kualitas internet
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.internet_quality}
-                  onChange={(v) =>
-                    setPrefsField(
-                      "internet_quality",
-                      v as PrefsForm["internet_quality"],
-                    )
-                  }
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "unstable", label: "Kurang stabil" },
-                    { value: "stable", label: "Cukup stabil" },
-                    { value: "very_stable", label: "Sangat stabil" },
-                  ]}
-                />
-              </div>
-              <div>
-                <FieldLabelWithTooltip tooltip="Estimasi budget bulanan untuk tools, course berbayar, dan ресурсes belajar">
-                Budget tools
-              </FieldLabelWithTooltip>
-                <Select
-                  value={prefs.budget_idr}
-                  onChange={(v) =>
-                    setPrefsField("budget_idr", v as PrefsForm["budget_idr"])
-                  }
-                  disabled={isFormDisabled}
-                  options={[
-                    { value: "<500k", label: "< Rp 500rb" },
-                    { value: "500k-2m", label: "Rp 500rb - 2jt" },
-                    { value: ">2m", label: "> 2jt" },
-                  ]}
-                />
-              </div>
-            </div>
-          </div>
+          ))}
 
           {saveError && (
             <p className="rounded border border-red-200 bg-red-50 px-4 py-3 font-body text-sm font-semibold text-red-600">
@@ -898,11 +587,14 @@ export function ProfileForm() {
             </p>
           )}
 
-          <div className="flex flex-wrap items-center justify-end gap-4 pb-8">
+          <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-end gap-4 rounded border border-[#e0e0e0] bg-white/95 p-4 shadow-md backdrop-blur">
+            <span className="mr-auto font-body text-xs font-bold text-[#6b7280]">
+              {isDirty ? "Ada perubahan belum disimpan" : "Tidak ada perubahan"}
+            </span>
             <button
               type="button"
               onClick={onDiscard}
-              disabled={isSaving}
+              disabled={isSaving || !isDirty}
               className="font-body text-sm font-bold text-[#374151] underline-offset-4 hover:underline disabled:opacity-50"
             >
               Discard
@@ -910,7 +602,7 @@ export function ProfileForm() {
             <button
               type="button"
               onClick={onSave}
-              disabled={isSaving || isFormDisabled}
+              disabled={isSaving || isFormDisabled || !isDirty}
               className={primaryGoldCtaClass(
                 "rounded px-10 py-3 font-body text-sm font-bold shadow-sm disabled:opacity-60",
               )}
