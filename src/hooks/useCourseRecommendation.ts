@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { postRecommend, patchRecommendation } from "@/lib/api/rag";
+import { toast } from "@/context/ToastContext";
 import { QuestionnaireRequiredError } from "@/types/rag";
 import type { CourseRecommendation } from "@/types/rag";
 
@@ -80,17 +81,34 @@ export function useCourseRecommendation() {
 
   /** Toggle saved/bookmark status */
   const toggleSaved = useCallback(async (recId: string) => {
-    const rec = recommendations.find((r) => r.id === recId);
-    if (!rec) return;
-    try {
-      const updated = await patchRecommendation(recId, !rec.is_saved);
-      setRecommendations((prev) =>
-        prev.map((r) => (r.id === recId ? { ...r, is_saved: updated.is_saved } : r)),
+    let prevSaved: boolean | null = null;
+    setRecommendations((prev) => {
+      const rec = prev.find((r) => r.id === recId);
+      if (!rec) return prev;
+      prevSaved = rec.is_saved;
+      return prev.map((r) =>
+        r.id === recId ? { ...r, is_saved: !r.is_saved } : r,
       );
-    } catch {
-      // Silently fail — keep current state
+    });
+    if (prevSaved === null) return;
+    try {
+      const updated = await patchRecommendation(recId, !prevSaved);
+      setRecommendations((prev) =>
+        prev.map((r) =>
+          r.id === recId ? { ...r, is_saved: updated.is_saved } : r,
+        ),
+      );
+    } catch (err) {
+      setRecommendations((prev) =>
+        prev.map((r) =>
+          r.id === recId ? { ...r, is_saved: prevSaved! } : r,
+        ),
+      );
+      toast.error(
+        err instanceof Error ? err.message : "Gagal menyimpan rekomendasi.",
+      );
     }
-  }, [recommendations]);
+  }, []);
 
   const reset = useCallback(() => {
     setTopic("");

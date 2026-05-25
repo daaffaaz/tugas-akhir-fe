@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -28,6 +28,7 @@ import { PathOverviewCard } from "@/components/learning-path/PathOverviewCard";
 import { ReplaceCourseModal } from "@/components/learning-path/ReplaceCourseModal";
 import { RegeneratePathModal } from "@/components/learning-path/RegeneratePathModal";
 import { AddCourseToPathModal, type AvailablePhase } from "@/components/learning-path/AddCourseToPathModal";
+import { DeleteConfirmDialog } from "@/components/learning-path/DeleteConfirmDialog";
 import { AppBar } from "@/components/layout/AppBar";
 import { Footer } from "@/components/layout/Footer";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
@@ -140,37 +141,85 @@ export function ModifyPathClient({ pathId }: Props) {
   }>({ open: false, courseId: "", courseTitle: "" });
   const [regenerateModal, setRegenerateModal] = useState(false);
   const [addCourseModal, setAddCourseModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    courseId: string;
+    courseTitle: string;
+  }>({ open: false, courseId: "", courseTitle: "" });
+
+  const draftDeletedIdsRef = useRef(draftDeletedIds);
+  const draftToggledIdsRef = useRef(draftToggledIds);
+
+  useEffect(() => {
+    draftDeletedIdsRef.current = draftDeletedIds;
+  }, [draftDeletedIds]);
+
+  useEffect(() => {
+    draftToggledIdsRef.current = draftToggledIds;
+  }, [draftToggledIds]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const loadPath = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getRagLearningPath(pathId);
-      setPath(res);
-      const list = buildAugmented(res);
-      setServerCourses(list);
-      setDraftCourses(list);
-      setDraftDeletedIds(new Set());
-      setDraftToggledIds(new Set());
-      setExpandedId((prev) => {
-        if (prev && list.some((c) => c.id === prev)) return prev;
-        return list[0]?.id ?? null;
-      });
-    } catch (err) {
-      if (err instanceof QuestionnaireRequiredError) {
-        window.location.href = "/questionnaire";
-        return;
+  const loadPath = useCallback(
+    async (opts?: { preserveDraft?: boolean }) => {
+      if (!opts?.preserveDraft) {
+        setLoading(true);
       }
-      setError(err instanceof Error ? err.message : "Gagal memuat learning path.");
-    } finally {
-      setLoading(false);
-    }
-  }, [pathId]);
+      setError(null);
+      try {
+        const res = await getRagLearningPath(pathId);
+        setPath(res);
+        const list = buildAugmented(res);
+        setServerCourses(list);
+
+        if (opts?.preserveDraft) {
+          const existingIds = new Set(list.map((c) => c.id));
+          const prevDeleted = draftDeletedIdsRef.current;
+          const prevToggled = draftToggledIdsRef.current;
+          const nextDeleted = new Set(
+            [...prevDeleted].filter((id) => existingIds.has(id)),
+          );
+          const nextToggled = new Set(
+            [...prevToggled].filter((id) => existingIds.has(id)),
+          );
+          setDraftDeletedIds(nextDeleted);
+          setDraftToggledIds(nextToggled);
+          setDraftCourses(
+            list.map((c) =>
+              nextToggled.has(c.id)
+                ? { ...c, is_completed: !c.is_completed }
+                : c,
+            ),
+          );
+        } else {
+          setDraftCourses(list);
+          setDraftDeletedIds(new Set());
+          setDraftToggledIds(new Set());
+        }
+
+        setExpandedId((prev) => {
+          if (prev && list.some((c) => c.id === prev)) return prev;
+          return list[0]?.id ?? null;
+        });
+      } catch (err) {
+        if (err instanceof QuestionnaireRequiredError) {
+          window.location.href = "/questionnaire";
+          return;
+        }
+        setError(
+          err instanceof Error ? err.message : "Gagal memuat learning path.",
+        );
+      } finally {
+        if (!opts?.preserveDraft) {
+          setLoading(false);
+        }
+      }
+    },
+    [pathId],
+  );
 
   useEffect(() => {
     loadPath();
@@ -232,14 +281,13 @@ export function ModifyPathClient({ pathId }: Props) {
     });
   }, []);
 
-  const handleDelete = useCallback(
+  const confirmDelete = useCallback(
     (courseId: string) => {
       setDraftDeletedIds((prev) => {
         const next = new Set(prev);
         next.add(courseId);
         return next;
       });
-      // Cancel any pending toggle for this course (no point toggling a deleted course)
       setDraftToggledIds((prev) => {
         if (!prev.has(courseId)) return prev;
         const next = new Set(prev);
@@ -249,6 +297,18 @@ export function ModifyPathClient({ pathId }: Props) {
       if (expandedId === courseId) setExpandedId(null);
     },
     [expandedId],
+  );
+
+  const requestDelete = useCallback(
+    (courseId: string) => {
+      const course = draftCourses.find((c) => c.id === courseId);
+      setDeleteConfirm({
+        open: true,
+        courseId,
+        courseTitle: course?.course.title ?? "kursus ini",
+      });
+    },
+    [draftCourses],
   );
 
   const handleDragEnd = useCallback(
@@ -384,7 +444,9 @@ export function ModifyPathClient({ pathId }: Props) {
     <div className="flex min-h-screen flex-col bg-[#fdfdfd] font-body">
       <AppBar />
 
-      <div className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 sm:px-8 sm:py-10">
+      <div
+        className={`mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 sm:px-8 sm:py-10 ${isDirty ? "pb-24" : ""}`}
+      >
         {/* Breadcrumb */}
         <Link
           href="/learning-path"
@@ -414,7 +476,7 @@ export function ModifyPathClient({ pathId }: Props) {
                 expandedCourseId={expandedId}
                 onToggleExpand={handleToggleExpand}
                 onToggleComplete={handleToggleComplete}
-                onDelete={handleDelete}
+                onDelete={requestDelete}
                 onReplace={handleReplace}
               />
             </DndContext>
@@ -431,11 +493,11 @@ export function ModifyPathClient({ pathId }: Props) {
 
           {/* Right: sidebar */}
           <div className="flex flex-col gap-6 lg:col-span-4">
-            {/* Manajemen Path — Save + Discard + Regenerate dalam satu container */}
+            {/* Manajemen Learning Path */}
             <div className="rounded border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_1px_rgba(0,0,0,0.05)] sm:p-[33px]">
               <div className="mb-5 flex items-center justify-between gap-2">
                 <p className="font-heading text-[10px] font-extrabold uppercase tracking-[2.5px] text-[#9ca3af]">
-                  Manajemen Path
+                  Manajemen Learning Path
                 </p>
                 {isDirty && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 font-body text-[10px] font-bold uppercase tracking-wide text-amber-800">
@@ -444,41 +506,12 @@ export function ModifyPathClient({ pathId }: Props) {
                 )}
               </div>
 
-              {/* Primary: Simpan Perubahan */}
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !isDirty}
-                className="flex w-full items-center justify-center gap-3 rounded bg-gold py-[17px] font-heading text-[12px] font-extrabold uppercase tracking-[1.2px] text-[#1c1c1c] transition-colors hover:bg-dark hover:text-gold disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gold disabled:hover:text-[#1c1c1c]"
-              >
-                {saving ? <SpinnerIcon /> : <SaveIcon />}
-                {saving ? "Menyimpan..." : "Simpan Perubahan"}
-              </button>
-
-              {/* Secondary: Batal Perubahan (only when dirty) */}
-              {isDirty && !saving && (
-                <button
-                  type="button"
-                  onClick={handleDiscard}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded border border-[#e5e7eb] bg-white py-[14px] font-heading text-[11px] font-extrabold uppercase tracking-[1.2px] text-[#6b7280] transition-colors hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
-                >
-                  <UndoIcon /> Batal Perubahan
-                </button>
-              )}
-
               {saveError && (
-                <p className="mt-3 font-body text-[12px] text-red-600">
+                <p className="mb-3 font-body text-[12px] text-red-600">
                   {saveError}
                 </p>
               )}
 
-              {/* Separator */}
-              <div className="my-5 border-t border-[#f3f4f6]" />
-
-              {/* Regenerate */}
-              <p className="mb-3 font-heading text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#9ca3af]">
-                Aksi Lainnya
-              </p>
               <button
                 type="button"
                 onClick={() => setRegenerateModal(true)}
@@ -515,6 +548,36 @@ export function ModifyPathClient({ pathId }: Props) {
         </div>
       </div>
 
+      {isDirty && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e5e7eb] bg-white/95 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur">
+          <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-8">
+            <span className="rounded-full bg-amber-100 px-3 py-1 font-body text-[11px] font-bold uppercase tracking-wide text-amber-800">
+              Belum disimpan
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              {!saving && (
+                <button
+                  type="button"
+                  onClick={handleDiscard}
+                  className="flex items-center justify-center gap-2 rounded border border-[#e5e7eb] bg-white px-5 py-3 font-heading text-[11px] font-extrabold uppercase tracking-[1.2px] text-[#6b7280] transition-colors hover:border-[#1c1c1c] hover:text-[#1c1c1c]"
+                >
+                  <UndoIcon /> Batal Perubahan
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center justify-center gap-3 rounded bg-gold px-6 py-3 font-heading text-[12px] font-extrabold uppercase tracking-[1.2px] text-[#1c1c1c] transition-colors hover:bg-dark hover:text-gold disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gold disabled:hover:text-[#1c1c1c]"
+              >
+                {saving ? <SpinnerIcon /> : <SaveIcon />}
+                {saving ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
 
       {/* Modals */}
@@ -527,7 +590,7 @@ export function ModifyPathClient({ pathId }: Props) {
           courseTitle={replaceModal.courseTitle}
           onReplaced={loadPath}
           onDeleted={() => {
-            handleDelete(replaceModal.courseId);
+            confirmDelete(replaceModal.courseId);
             setReplaceModal((m) => ({ ...m, open: false }));
           }}
         />
@@ -547,10 +610,18 @@ export function ModifyPathClient({ pathId }: Props) {
           onClose={() => setAddCourseModal(false)}
           pathId={pathId}
           courseId={visibleDraftCourses[0]?.course.id}
-          onAdded={loadPath}
+          onAdded={() => loadPath({ preserveDraft: true })}
           availablePhases={availablePhases}
         />
       )}
+      <DeleteConfirmDialog
+        open={deleteConfirm.open}
+        onClose={() =>
+          setDeleteConfirm((s) => ({ ...s, open: false }))
+        }
+        onConfirm={() => confirmDelete(deleteConfirm.courseId)}
+        courseName={deleteConfirm.courseTitle}
+      />
     </div>
   );
 }

@@ -11,7 +11,6 @@ export function PathOverviewCard({ path, courseCount, completedCount }: Props) {
   const title = snap?.roadmap_title ?? path.title;
   const overview = snap?.overview ?? path.description;
   const totalWeeks = snap?.total_duration_weeks;
-  const totalHours = snap?.total_hours_estimated;
   const difficulty = snap?.difficulty_curve;
   const targetSkills = snap?.target_skills ?? [];
   const progress = path.progress_percentage ?? 0;
@@ -48,7 +47,6 @@ export function PathOverviewCard({ path, courseCount, completedCount }: Props) {
       {/* Stats strip */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded border border-[#e5e7eb] bg-white px-5 py-4 shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
         {totalWeeks ? <Stat icon={<CalendarIcon />} value={`${totalWeeks} minggu`} /> : null}
-        {totalHours ? <Stat icon={<ClockIcon />} value={`${totalHours} jam`} /> : null}
         {difficulty ? <Stat icon={<ChartIcon />} value={difficulty} /> : null}
         <Stat icon={<CheckCircleIcon />} value={`${completedCount}/${courseCount} selesai`} />
         <div className="flex min-w-[160px] flex-1 items-center gap-3">
@@ -103,15 +101,6 @@ function CalendarIcon() {
       <line x1="16" y1="2" x2="16" y2="6" />
       <line x1="8" y1="2" x2="8" y2="6" />
       <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
     </svg>
   );
 }

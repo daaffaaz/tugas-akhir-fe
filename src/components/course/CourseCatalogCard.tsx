@@ -21,6 +21,11 @@ function formatReviews(n: number) {
   return new Intl.NumberFormat("id-ID").format(n);
 }
 
+function formatPrice(price: number | null | undefined) {
+  if (price == null || price === 0) return "Gratis";
+  return `IDR ${price.toLocaleString("id-ID")}`;
+}
+
 function StarRow({ rating }: { rating: number }) {
   const rounded = Math.round(rating);
   return (
@@ -42,6 +47,9 @@ function StarRow({ rating }: { rating: number }) {
 }
 
 export function CourseCatalogCard({ course }: { course: CatalogCourse }) {
+  const priceLabel = formatPrice(course.price);
+  const isFree = priceLabel === "Gratis";
+
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm">
       <div className="relative h-40 w-full bg-grey-bg">
@@ -72,14 +80,23 @@ export function CourseCatalogCard({ course }: { course: CatalogCourse }) {
             ({formatReviews(course.reviewCount)})
           </span>
         </div>
-        <button
-          type="button"
-          className={primaryGoldCtaClass(
-            "mt-5 w-full py-3 font-heading text-xs font-extrabold uppercase tracking-widest",
-          )}
+        <p
+          className={`mt-3 font-heading text-sm font-extrabold ${isFree ? "text-emerald-600" : "text-dark"}`}
         >
-          Lihat kursus
-        </button>
+          {priceLabel}
+        </p>
+        {course.url ? (
+          <a
+            href={course.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={primaryGoldCtaClass(
+              "mt-4 block w-full py-3 text-center font-heading text-xs font-extrabold uppercase tracking-widest",
+            )}
+          >
+            Lihat kursus
+          </a>
+        ) : null}
       </div>
     </article>
   );
