@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getQuestions } from "@/lib/api/questionnaire";
 import { LevelQuestionnaireClient } from "@/components/questionnaire/LevelQuestionnaireClient";
 
