@@ -43,7 +43,7 @@ export default function QuestionnaireIntroPage() {
 
             <div className="mt-10 flex flex-col items-center gap-8">
               <Link
-                href="/questionnaire/1"
+                href="/questionnaire/level"
                 className={cn(
                   primaryGoldCtaBase,
                   "group inline-flex items-center gap-3 rounded px-10 py-5 font-heading text-base font-bold shadow-[0px_10px_15px_-3px_rgba(255,206,0,0.1)]",

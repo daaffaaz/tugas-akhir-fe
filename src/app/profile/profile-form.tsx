@@ -74,6 +74,18 @@ function ProfileSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
+// Section label mapping
+// ---------------------------------------------------------------------------
+
+function sectionLabel(section: string): string {
+  const map: Record<string, string> = {
+    "SUB-BAGIAN A — LEVEL": "Tahap 1 — Evaluasi Level",
+    "SUB-BAGIAN B — PREFERENCE": "Tahap 2 — Preferensi & Tujuan",
+  };
+  return map[section] ?? section.toLowerCase();
+}
+
+// ---------------------------------------------------------------------------
 // Question card — renders a single question with selectable options
 // ---------------------------------------------------------------------------
 
@@ -558,7 +570,7 @@ export function ProfileForm({ questions }: Props) {
             >
               <div className="mb-6 flex items-baseline justify-between gap-4">
                 <h2 className="font-heading text-lg font-extrabold capitalize text-[#1f2937]">
-                  {section.toLowerCase()}
+                  {sectionLabel(section)}
                 </h2>
                 <span className="font-heading text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">
                   {items.filter((q) => answers[q.id]).length} / {items.length}
