@@ -30,7 +30,7 @@ export function QuestionnaireGuard({ onRedirect }: QuestionnaireGuardProps) {
         rekomendasi yang personal.
       </p>
       <p className="mb-8 max-w-md font-body text-sm text-[#9ca3af]">
-        Kuesioner hanya butuh sekitar 5 menit dan terdiri dari 32 pertanyaan.
+        Kuesioner hanya butuh sekitar 5 menit.
       </p>
 
       <button
