@@ -19,6 +19,7 @@ import {
   type ApiQuestion,
   type QuestionnaireAnswer,
 } from "@/lib/api/questionnaire";
+import { MyBadgesSection } from "@/components/badges/MyBadgesSection";
 
 // ---------------------------------------------------------------------------
 // Small UI helpers
@@ -482,6 +483,9 @@ export function ProfileForm({ questions }: Props) {
           </button>
         </div>
       </section>
+
+      {/* Badges & pencapaian (di antara header dan Informasi Diri) */}
+      <MyBadgesSection className="mb-12" />
 
       <div className="grid gap-10 lg:grid-cols-12">
         {/* Left: Informasi diri */}

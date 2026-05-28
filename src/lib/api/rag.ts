@@ -15,6 +15,7 @@ import {
   GlobalProgressResponse,
   BulkUpdateCoursesRequest,
 } from "@/types/rag";
+import type { LearningPathCourseToggleResponse } from "@/types/badges";
 
 // ─── Course Recommendation ────────────────────────────────────────────────
 
@@ -244,11 +245,20 @@ export async function getSimilarCourses(
   );
 }
 
-/** PATCH /api/learning-paths/courses/{lp_course_id}/toggle-complete/ — toggle course completion */
+/**
+ * PATCH /api/learning-paths/courses/{lp_course_id}/toggle-complete/ —
+ * toggle course completion. Response sekarang menyertakan field `badges`
+ * berisi hasil evaluasi badge (awarded baru + already_owned).
+ *
+ * - Toggle `false` → `true`: backend evaluate badge, response berisi
+ *   `badges.awarded` dan/atau `badges.already_owned`.
+ * - Toggle `true` → `false`: tidak ada evaluasi, `badges.awarded = []` &
+ *   `badges.already_owned = []`. Badge yang sudah di-earn tidak dicabut.
+ */
 export async function toggleCourseComplete(
   lpCourseId: string,
-): Promise<{ is_completed: boolean }> {
-  return apiFetch<{ is_completed: boolean }>(
+): Promise<LearningPathCourseToggleResponse> {
+  return apiFetch<LearningPathCourseToggleResponse>(
     `/api/learning-paths/courses/${lpCourseId}/toggle-complete/`,
     { method: "PATCH", auth: true },
   );

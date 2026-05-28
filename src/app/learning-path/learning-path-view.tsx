@@ -7,6 +7,7 @@ import { LearningPathCard } from "@/components/learning-path/LearningPathCard";
 import { Footer } from "@/components/layout/Footer";
 import { primaryGoldCtaClass, primaryCtaIconHover } from "@/lib/primary-cta";
 import { cn } from "@/lib/utils";
+import { BadgeStrip } from "@/components/badges/BadgeStrip";
 
 const imgTechBackground = "/images/8138a0a8-d918-4d6c-9e75-ebb2545f2be9.png";
 const imgCompass = "/images/4ab9fb7e-2334-4de8-b654-832aff4615aa.png";
@@ -279,6 +280,9 @@ export function LearningPathView({ paths, globalProgress, loading, error, onRetr
             )}
           </div>
         </div>
+
+        {/* Badge pencapaian — di bawah card progres keseluruhan */}
+        <BadgeStrip className="mt-6" />
 
         <div className="mt-12 flex flex-col gap-6">
           {paths.map((p) => (

@@ -32,6 +32,8 @@ import { DeleteConfirmDialog } from "@/components/learning-path/DeleteConfirmDia
 import { AppBar } from "@/components/layout/AppBar";
 import { Footer } from "@/components/layout/Footer";
 import { primaryGoldCtaClass } from "@/lib/primary-cta";
+import { showBadgeAwarded } from "@/components/badges/BadgeAwardedToast";
+import { toast } from "@/context/ToastContext";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -127,7 +129,7 @@ export function ModifyPathClient({ pathId }: Props) {
   const [serverCourses, setServerCourses] = useState<AugmentedCourse[]>([]);
   const [draftCourses, setDraftCourses] = useState<AugmentedCourse[]>([]);
   const [draftDeletedIds, setDraftDeletedIds] = useState<Set<string>>(new Set());
-  const [draftToggledIds, setDraftToggledIds] = useState<Set<string>>(new Set());
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,15 +150,15 @@ export function ModifyPathClient({ pathId }: Props) {
   }>({ open: false, courseId: "", courseTitle: "" });
 
   const draftDeletedIdsRef = useRef(draftDeletedIds);
-  const draftToggledIdsRef = useRef(draftToggledIds);
+  const togglingIdsRef = useRef(togglingIds);
 
   useEffect(() => {
     draftDeletedIdsRef.current = draftDeletedIds;
   }, [draftDeletedIds]);
 
   useEffect(() => {
-    draftToggledIdsRef.current = draftToggledIds;
-  }, [draftToggledIds]);
+    togglingIdsRef.current = togglingIds;
+  }, [togglingIds]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -178,26 +180,14 @@ export function ModifyPathClient({ pathId }: Props) {
         if (opts?.preserveDraft) {
           const existingIds = new Set(list.map((c) => c.id));
           const prevDeleted = draftDeletedIdsRef.current;
-          const prevToggled = draftToggledIdsRef.current;
           const nextDeleted = new Set(
             [...prevDeleted].filter((id) => existingIds.has(id)),
           );
-          const nextToggled = new Set(
-            [...prevToggled].filter((id) => existingIds.has(id)),
-          );
           setDraftDeletedIds(nextDeleted);
-          setDraftToggledIds(nextToggled);
-          setDraftCourses(
-            list.map((c) =>
-              nextToggled.has(c.id)
-                ? { ...c, is_completed: !c.is_completed }
-                : c,
-            ),
-          );
+          setDraftCourses(list);
         } else {
           setDraftCourses(list);
           setDraftDeletedIds(new Set());
-          setDraftToggledIds(new Set());
         }
 
         setExpandedId((prev) => {
@@ -248,7 +238,6 @@ export function ModifyPathClient({ pathId }: Props) {
 
   const isDirty = useMemo(() => {
     if (draftDeletedIds.size > 0) return true;
-    if (draftToggledIds.size > 0) return true;
     const serverIds = serverCourses.map((c) => c.id);
     const draftIds = draftCourses.map((c) => c.id);
     if (serverIds.length !== draftIds.length) return true;
@@ -256,7 +245,7 @@ export function ModifyPathClient({ pathId }: Props) {
       if (serverIds[i] !== draftIds[i]) return true;
     }
     return false;
-  }, [draftDeletedIds, draftToggledIds, serverCourses, draftCourses]);
+  }, [draftDeletedIds, serverCourses, draftCourses]);
 
   const completedCount = visibleDraftCourses.filter((c) => c.is_completed).length;
 
@@ -267,18 +256,90 @@ export function ModifyPathClient({ pathId }: Props) {
   }, []);
 
   const handleToggleComplete = useCallback((courseId: string) => {
+    // Skip kalau call sebelumnya untuk course ini masih in-flight (anti race).
+    if (togglingIdsRef.current.has(courseId)) return;
+
+    // Capture state sebelumnya untuk rollback kalau API fail.
+    let previousIsCompleted: boolean | null = null;
     setDraftCourses((prev) =>
+      prev.map((c) => {
+        if (c.id !== courseId) return c;
+        previousIsCompleted = c.is_completed;
+        return { ...c, is_completed: !c.is_completed };
+      }),
+    );
+    // Mirror perubahan ke serverCourses agar isDirty tidak salah deteksi.
+    setServerCourses((prev) =>
       prev.map((c) =>
         c.id === courseId ? { ...c, is_completed: !c.is_completed } : c,
       ),
     );
-    setDraftToggledIds((prev) => {
+
+    setTogglingIds((prev) => {
       const next = new Set(prev);
-      // XOR: if user toggles same course back, it cancels out
-      if (next.has(courseId)) next.delete(courseId);
-      else next.add(courseId);
+      next.add(courseId);
       return next;
     });
+
+    void (async () => {
+      try {
+        const res = await toggleCourseComplete(courseId);
+
+        // Sinkronkan state dengan response (untuk konsistensi end-to-end).
+        setDraftCourses((prev) =>
+          prev.map((c) =>
+            c.id === courseId
+              ? { ...c, is_completed: res.is_completed }
+              : c,
+          ),
+        );
+        setServerCourses((prev) =>
+          prev.map((c) =>
+            c.id === courseId
+              ? { ...c, is_completed: res.is_completed }
+              : c,
+          ),
+        );
+
+        // Celebration toast untuk badge baru.
+        for (const badge of res.badges?.awarded ?? []) {
+          showBadgeAwarded(badge);
+        }
+        // Info toast non-blocking untuk badge yg sudah dimiliki.
+        for (const badge of res.badges?.already_owned ?? []) {
+          toast.info(
+            `Kamu sudah punya badge ${badge.name} dari course sebelumnya.`,
+          );
+        }
+      } catch (err) {
+        // Rollback optimistic update.
+        if (previousIsCompleted !== null) {
+          const rollback = previousIsCompleted;
+          setDraftCourses((prev) =>
+            prev.map((c) =>
+              c.id === courseId ? { ...c, is_completed: rollback } : c,
+            ),
+          );
+          setServerCourses((prev) =>
+            prev.map((c) =>
+              c.id === courseId ? { ...c, is_completed: rollback } : c,
+            ),
+          );
+        }
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Gagal memperbarui status course.",
+        );
+      } finally {
+        setTogglingIds((prev) => {
+          if (!prev.has(courseId)) return prev;
+          const next = new Set(prev);
+          next.delete(courseId);
+          return next;
+        });
+      }
+    })();
   }, []);
 
   const confirmDelete = useCallback(
@@ -286,12 +347,6 @@ export function ModifyPathClient({ pathId }: Props) {
       setDraftDeletedIds((prev) => {
         const next = new Set(prev);
         next.add(courseId);
-        return next;
-      });
-      setDraftToggledIds((prev) => {
-        if (!prev.has(courseId)) return prev;
-        const next = new Set(prev);
-        next.delete(courseId);
         return next;
       });
       if (expandedId === courseId) setExpandedId(null);
@@ -340,7 +395,7 @@ export function ModifyPathClient({ pathId }: Props) {
     setSaving(true);
     setSaveError(null);
     try {
-      // 1. Cek apakah ada perubahan struktural (delete atau reorder)
+      // Cek apakah ada perubahan struktural (delete atau reorder)
       const serverVisibleIds = serverCourses
         .map((c) => c.id)
         .filter((id) => !draftDeletedIds.has(id));
@@ -350,8 +405,8 @@ export function ModifyPathClient({ pathId }: Props) {
         serverVisibleIds.length !== draftVisibleIds.length ||
         serverVisibleIds.some((id, i) => id !== draftVisibleIds[i]);
 
-      // Bulk-update: atomic replace seluruh daftar courses (delete implicit + reorder)
-      // phase_number harus di-include — BE default ke null kalau kosong, kursus jadi pindah ke "Kursus Tambahan"
+      // Bulk-update: atomic replace seluruh daftar courses (delete implicit + reorder).
+      // Toggle completion sudah committed instantly per click (lihat handleToggleComplete).
       if (isStructurallyDirty) {
         await bulkUpdatePathCourses(pathId, {
           courses: visibleDraftCourses.map((c, i) => ({
@@ -363,16 +418,6 @@ export function ModifyPathClient({ pathId }: Props) {
         });
       }
 
-      // 2. Toggle completion (XOR set: hanya yang netto berubah)
-      if (draftToggledIds.size > 0) {
-        await Promise.all(
-          [...draftToggledIds].map((id) =>
-            toggleCourseComplete(id).catch(() => undefined),
-          ),
-        );
-      }
-
-      // 3. Refresh canonical state
       await loadPath();
     } catch (err) {
       setSaveError(
@@ -384,7 +429,6 @@ export function ModifyPathClient({ pathId }: Props) {
   }, [
     saving,
     draftDeletedIds,
-    draftToggledIds,
     visibleDraftCourses,
     serverCourses,
     pathId,
@@ -394,7 +438,6 @@ export function ModifyPathClient({ pathId }: Props) {
   const handleDiscard = useCallback(() => {
     setDraftCourses(serverCourses);
     setDraftDeletedIds(new Set());
-    setDraftToggledIds(new Set());
     setSaveError(null);
   }, [serverCourses]);
 

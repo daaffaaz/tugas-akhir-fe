@@ -4,6 +4,7 @@ import { GoogleOAuthAppProvider } from "@/components/auth/GoogleOAuthAppProvider
 import { siteConfig } from "@/config/site";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { BadgeAwardedToastProvider } from "@/components/badges/BadgeAwardedToast";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,7 +40,10 @@ export default function RootLayout({
       <body className="font-body flex min-h-full flex-col">
         <GoogleOAuthAppProvider>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              {children}
+              <BadgeAwardedToastProvider />
+            </ToastProvider>
           </AuthProvider>
         </GoogleOAuthAppProvider>
       </body>
