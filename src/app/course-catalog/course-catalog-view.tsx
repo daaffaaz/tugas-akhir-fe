@@ -29,6 +29,32 @@ function mapTabToPlatform(tab: PlatformTab): CoursePlatform {
   return tab;
 }
 
+/**
+ * Builds a condensed list of page items: always the first and last page,
+ * plus a window around the current page, with "ellipsis" markers filling
+ * the gaps. Keeps the control compact even with many pages.
+ * e.g. (current 5, total 10) -> [1, "ellipsis", 4, 5, 6, "ellipsis", 10]
+ */
+function getPageItems(
+  current: number,
+  total: number,
+): (number | "ellipsis")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const items: (number | "ellipsis")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+
+  if (start > 2) items.push("ellipsis");
+  for (let n = start; n <= end; n++) items.push(n);
+  if (end < total - 1) items.push("ellipsis");
+
+  items.push(total);
+  return items;
+}
+
 function FilterSection({
   title,
   children,
@@ -343,22 +369,33 @@ export function CourseCatalogView() {
               >
                 &larr;
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setPage(n)}
-                  disabled={isLoading}
-                  className={cn(
-                    "min-w-[2.5rem] rounded px-3 py-2 text-sm font-bold disabled:opacity-60",
-                    n === page
-                      ? "bg-gold text-dark"
-                      : "border border-[#e5e7eb] text-muted hover:bg-grey-bg",
-                  )}
-                >
-                  {n}
-                </button>
-              ))}
+              {getPageItems(page, totalPages).map((item, i) =>
+                item === "ellipsis" ? (
+                  <span
+                    key={`ellipsis-${i}`}
+                    className="min-w-[2.5rem] px-2 py-2 text-center text-sm font-bold text-muted"
+                    aria-hidden
+                  >
+                    &hellip;
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setPage(item)}
+                    disabled={isLoading}
+                    aria-current={item === page ? "page" : undefined}
+                    className={cn(
+                      "min-w-[2.5rem] rounded px-3 py-2 text-sm font-bold disabled:opacity-60",
+                      item === page
+                        ? "bg-gold text-dark"
+                        : "border border-[#e5e7eb] text-muted hover:bg-grey-bg",
+                    )}
+                  >
+                    {item}
+                  </button>
+                ),
+              )}
               <button
                 type="button"
                 className="rounded border border-[#e5e7eb] px-3 py-2 text-sm font-bold text-muted hover:bg-grey-bg disabled:opacity-40"
