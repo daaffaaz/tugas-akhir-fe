@@ -485,7 +485,7 @@ export function ProfileForm({ questions }: Props) {
       </section>
 
       {/* Badges & pencapaian (di antara header dan Informasi Diri) */}
-      <MyBadgesSection className="mb-12" />
+      <MyBadgesSection className="mb-8" />
 
       <div className="grid gap-10 lg:grid-cols-12">
         {/* Left: Informasi diri */}

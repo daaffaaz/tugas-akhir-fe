@@ -1,31 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getMyBadges } from "@/lib/api/badges";
 import { QuestionnaireRequiredError } from "@/types/rag";
-import { BADGE_CATEGORIES, type UserBadge, type BadgeCategory } from "@/types/badges";
-import { UserBadgeCard } from "./BadgeCard";
+import type { UserBadge } from "@/types/badges";
 import { BadgeIcon } from "./BadgeIcon";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const CATEGORY_LABEL_OVERRIDE: Partial<Record<BadgeCategory, string>> = {
-  ml_ai: "Machine Learning",
-};
-
-function groupBadges(list: UserBadge[]): Map<BadgeCategory, UserBadge[]> {
-  const map = new Map<BadgeCategory, UserBadge[]>();
-  for (const ub of list) {
-    const key = ub.badge.category;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(ub);
+function formatEarnedDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
   }
-  return map;
 }
 
-// ─── MyBadgesSection ─────────────────────────────────────────────────────────
+// ─── MyBadgesSection (compact profile variant) ───────────────────────────────
 
 interface Props {
   className?: string;
@@ -61,139 +58,139 @@ export function MyBadgesSection({ className, initialBadges }: Props) {
     };
   }, [initialBadges]);
 
-  const grouped = useMemo(() => groupBadges(badges), [badges]);
   const earnedCount = badges.length;
 
-  // Loading skeleton
+  // Loading skeleton — compact
   if (loading) {
     return (
       <section
         className={cn(
-          "rounded border border-[#e0e0e0] bg-white p-8 shadow-sm",
+          "rounded border border-[#e0e0e0] bg-white p-5 shadow-sm",
           className,
         )}
         aria-busy="true"
       >
         <BadgesHeader earnedCount={null} />
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-6">
+        <div className="mt-3 flex flex-wrap gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="flex animate-pulse flex-col items-center gap-2 rounded-lg border border-[#e5e7eb] bg-[#fafafa] p-4"
-            >
-              <div className="size-[72px] rounded-full bg-[#e5e7eb]" />
-              <div className="h-3 w-20 rounded bg-[#e5e7eb]" />
-              <div className="h-2 w-12 rounded bg-[#f3f4f6]" />
-            </div>
+              className="size-12 animate-pulse rounded-full bg-[#e5e7eb]"
+            />
           ))}
         </div>
       </section>
     );
   }
 
-  // Error state
+  // Error state — compact
   if (error) {
     return (
       <section
         className={cn(
-          "rounded border border-red-200 bg-red-50 p-8 shadow-sm",
+          "rounded border border-red-200 bg-red-50 px-5 py-4 shadow-sm",
           className,
         )}
       >
         <BadgesHeader earnedCount={null} />
-        <p className="mt-4 font-body text-sm text-red-600">{error}</p>
+        <p className="mt-2 font-body text-xs text-red-600">{error}</p>
       </section>
     );
   }
 
-  // Empty state
+  // Empty state — compact (inline horizontal)
   if (earnedCount === 0) {
     return (
       <section
         className={cn(
-          "rounded border border-[#e0e0e0] bg-white p-8 shadow-sm",
+          "rounded border border-[#e0e0e0] bg-white p-5 shadow-sm",
           className,
         )}
       >
         <BadgesHeader earnedCount={0} />
-        <div className="mt-6 flex flex-col items-center gap-4 rounded border border-dashed border-[#e5e7eb] bg-[#fafafa] px-6 py-10 text-center">
-          {/* Decorative locked sample */}
-          <BadgeIcon category="frontend" level="pemula" locked size={72} />
-          <div className="max-w-md">
-            <p className="font-heading text-sm font-extrabold text-[#1c1c1c]">
-              Belum ada badge yang diraih
-            </p>
-            <p className="mt-1 font-body text-xs leading-relaxed text-[#6b7280]">
-              Selesaikan kursus di learning path-mu untuk mendapatkan badge
-              sesuai kategori & level course. Setiap kursus selesai bisa
-              memunculkan badge baru.
-            </p>
+        <div className="mt-3 flex items-center gap-4">
+          <div className="flex -space-x-1.5">
+            <BadgeIcon category="frontend" level="pemula" locked size={36} />
+            <BadgeIcon category="ml_ai" level="menengah" locked size={36} />
+            <BadgeIcon category="cybersecurity" level="mahir" locked size={36} />
           </div>
+          <p className="flex-1 font-body text-[12px] leading-snug text-[#6b7280]">
+            Belum ada badge. Selesaikan kursus di learning path untuk meraih
+            badge pertamamu.
+          </p>
           <Link
             href="/learning-path"
-            className="rounded bg-gold px-5 py-2 font-heading text-[11px] font-extrabold uppercase tracking-[1px] text-[#1c1c1c] hover:bg-dark hover:text-gold"
+            className="shrink-0 rounded bg-gold px-3 py-1.5 font-heading text-[10px] font-extrabold uppercase tracking-[1px] text-[#1c1c1c] hover:bg-dark hover:text-gold"
           >
-            Mulai belajar
+            Mulai
           </Link>
         </div>
       </section>
     );
   }
 
-  // Grouped display
-  const categoriesWithBadges = BADGE_CATEGORIES.filter((cat) =>
-    grouped.has(cat),
-  );
-
+  // Earned display — flat compact strip
   return (
     <section
       className={cn(
-        "rounded border border-[#e0e0e0] bg-white p-8 shadow-sm",
+        "rounded border border-[#e0e0e0] bg-white p-5 shadow-sm",
         className,
       )}
     >
       <BadgesHeader earnedCount={earnedCount} />
 
-      <div className="mt-6 space-y-7">
-        {categoriesWithBadges.map((cat) => {
-          const items = grouped.get(cat)!;
-          // Ambil label dari first badge (semua badge di kategori sama akan punya label sama)
-          const label =
-            CATEGORY_LABEL_OVERRIDE[cat] ?? items[0]?.badge.category_label ?? cat;
-          return (
-            <div key={cat}>
-              <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-[#f3f4f6] pb-2">
-                <h3 className="font-heading text-[13px] font-extrabold text-[#1c1c1c]">
-                  {label}
-                </h3>
-                <span className="font-body text-[10px] font-bold uppercase tracking-[1px] text-[#9ca3af]">
-                  {items.length} badge
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {items.map((ub) => (
-                  <UserBadgeCard key={ub.id} userBadge={ub} size="md" />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {badges.map((ub) => (
+          <BadgeTile key={ub.id} userBadge={ub} />
+        ))}
       </div>
     </section>
   );
 }
 
-// ─── Header sub-component ────────────────────────────────────────────────────
+// ─── Compact badge tile (icon + hover tooltip) ───────────────────────────────
+
+function BadgeTile({ userBadge }: { userBadge: UserBadge }) {
+  const { badge, earned_at } = userBadge;
+  return (
+    <div
+      className="group relative"
+      title={`${badge.name} • ${badge.level_label}`}
+    >
+      <BadgeIcon
+        category={badge.category}
+        level={badge.level}
+        iconUrl={badge.icon_url}
+        size={48}
+        className="transition-transform group-hover:scale-110"
+      />
+      {/* Hover tooltip */}
+      <div
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-max max-w-[220px] -translate-x-1/2 rounded bg-[#1c1c1c] px-2.5 py-1.5 text-left opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+      >
+        <p className="font-heading text-[11px] font-extrabold text-white">
+          {badge.name}
+        </p>
+        <p className="font-body text-[9px] font-bold uppercase tracking-wide text-gold/90">
+          {badge.level_label} · {formatEarnedDate(earned_at)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Header sub-component (compact) ──────────────────────────────────────────
 
 function BadgesHeader({ earnedCount }: { earnedCount: number | null }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 className="flex items-center gap-2 font-heading text-lg font-extrabold text-[#1f2937]">
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="flex items-center gap-2 font-heading text-[13px] font-extrabold text-[#1f2937]">
         <span className="text-gold">&#9679;</span> Badge & Pencapaian
       </h2>
       {earnedCount !== null && (
-        <span className="rounded-full bg-gold/15 px-3 py-1 font-heading text-[10px] font-extrabold uppercase tracking-[1px] text-[#1c1c1c]">
-          {earnedCount} dari 24 diraih
+        <span className="rounded-full bg-gold/15 px-2.5 py-0.5 font-heading text-[10px] font-extrabold uppercase tracking-[1px] text-[#1c1c1c]">
+          {earnedCount} / 24
         </span>
       )}
     </div>
