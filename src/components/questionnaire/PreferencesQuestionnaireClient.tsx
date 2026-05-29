@@ -57,17 +57,19 @@ export function PreferencesQuestionnaireClient({
     if (subStep < total - 1) {
       setSubStep((s) => s + 1);
     } else {
-      // Submit: include all 9 questions (level + preferences)
       setIsSubmitting(true);
       setSubmitError(null);
       try {
         const allQuestions = [...levelQuestions, ...questions];
         const payload = buildSubmissionPayload(allQuestions);
+        console.log("DEBUG payload:", JSON.stringify(payload, null, 2));
         await submitQuestionnaire(payload);
         clearAnswers();
         router.push("/questionnaire/completion");
-      } catch {
-        setSubmitError("Terjadi kesalahan. Silakan coba lagi.");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Terjadi kesalahan. Silakan coba lagi.";
+        setSubmitError(msg);
+        console.error("DEBUG submit error:", err);
       } finally {
         setIsSubmitting(false);
       }

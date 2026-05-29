@@ -5,7 +5,9 @@ import { LevelQuestionnaireClient } from "@/components/questionnaire/LevelQuesti
 
 export default async function LevelQuestionnairePage() {
   const questions = await getQuestions();
-  // Qa1–Qa3: first 3 questions
-  const levelQuestions = questions.slice(0, 3);
+  // Filter to only SUB-BAGIAN A — LEVEL questions
+  const levelQuestions = questions.filter(
+    (q) => q.section === "SUB-BAGIAN A — LEVEL",
+  );
   return <LevelQuestionnaireClient questions={levelQuestions} />;
 }
