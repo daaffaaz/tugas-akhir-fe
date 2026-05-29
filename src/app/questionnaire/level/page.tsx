@@ -4,8 +4,15 @@ import { getQuestions } from "@/lib/api/questionnaire";
 import { LevelQuestionnaireClient } from "@/components/questionnaire/LevelQuestionnaireClient";
 
 export default async function LevelQuestionnairePage() {
-  const questions = await getQuestions();
-  // Qa1–Qa3: Section LEVEL MEASUREMENT
+  let questions: Awaited<ReturnType<typeof getQuestions>> = [];
+  let errorMsg = "";
+  try {
+    questions = await getQuestions();
+  } catch (e) {
+    errorMsg = String(e);
+    console.error("[level] getQuestions failed:", e);
+  }
+  console.log("[level] questions count:", questions.length, "error:", errorMsg);
   const levelQuestions = questions.filter(
     (q) => q.section === "LEVEL MEASUREMENT",
   );
