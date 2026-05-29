@@ -1,5 +1,12 @@
 import { apiFetch } from "./client";
 
+/**
+ * Section label the backend uses for the 3 level-assessment questions
+ * (Qa1–Qa3). Must match the `section` value returned by /api/questions/
+ * exactly, including the em-dash (—).
+ */
+export const LEVEL_SECTION = "SUB-BAGIAN A — LEVEL SIGNAL";
+
 export type ApiQuestion = {
   /**
    * UUID that uniquely identifies this question in the database.
