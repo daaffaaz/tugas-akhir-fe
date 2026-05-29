@@ -5,6 +5,7 @@ import { LevelQuestionnaireClient } from "@/components/questionnaire/LevelQuesti
 
 export default async function LevelQuestionnairePage() {
   const questions = await getQuestions();
+  console.log("DEBUG all sections:", questions.map((q) => ({ id: q.id, section: q.section, text: q.question_text })));
   // Filter to only SUB-BAGIAN A — LEVEL questions
   const levelQuestions = questions.filter(
     (q) => q.section === "SUB-BAGIAN A — LEVEL",
