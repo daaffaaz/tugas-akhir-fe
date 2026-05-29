@@ -118,3 +118,26 @@ export async function patchUserAnswers(
     auth: true,
   });
 }
+
+export type ComputeLevelResponse = {
+  level: string;
+  score: number;
+  signals: {
+    programming_familiarity: string;
+    domain_comfort: string;
+    formal_preparation: string;
+  };
+};
+
+/**
+ * Computes the user's level from their answers to the 3 level assessment questions.
+ */
+export async function computeLevel(
+  answers: QuestionnaireAnswer[],
+): Promise<ComputeLevelResponse> {
+  return apiFetch<ComputeLevelResponse>("/api/questionnaires/compute-level/", {
+    method: "POST",
+    body: { answers },
+    auth: true,
+  });
+}

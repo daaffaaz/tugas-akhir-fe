@@ -5,12 +5,11 @@ import { PreferencesQuestionnaireClient } from "@/components/questionnaire/Prefe
 
 export default async function PreferencesQuestionnairePage() {
   const questions = await getQuestions();
-  // Level: LEVEL MEASUREMENT (3Q), Preferences: semua yang lain (bukan demografi)
   const levelQuestions = questions.filter(
-    (q) => q.section === "LEVEL MEASUREMENT",
+    (q) => q.section === "LEVEL ASSESSMENT",
   );
   const prefQuestions = questions.filter(
-    (q) => q.section !== "LEVEL MEASUREMENT",
+    (q) => q.section !== "LEVEL ASSESSMENT",
   );
   return (
     <PreferencesQuestionnaireClient

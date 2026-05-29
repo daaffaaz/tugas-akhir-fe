@@ -80,7 +80,7 @@ function ProfileSkeleton() {
 
 function sectionLabel(section: string): string {
   const map: Record<string, string> = {
-    "LEVEL MEASUREMENT": "Tahap 1 — Evaluasi Level",
+    "LEVEL ASSESSMENT": "Tahap 1 — Evaluasi Level",
     "PROFIL & DEMOGRAFI": "Profil & Demografi",
     "GAYA BELAJAR": "Gaya Belajar",
     "KETERSEDIAAN WAKTU": "Ketersediaan Waktu",

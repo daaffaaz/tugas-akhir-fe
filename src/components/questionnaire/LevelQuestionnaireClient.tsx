@@ -7,12 +7,25 @@ import { LevelIndicator } from "@/components/questionnaire/LevelIndicator";
 import { OptionCard } from "@/components/questionnaire/OptionCard";
 import { ProgressBar } from "@/components/questionnaire/ProgressBar";
 import type { ApiQuestion } from "@/lib/api/questionnaire";
-import { computeLevel } from "@/lib/compute-level";
+import { computeLevel as computeLevelApi } from "@/lib/api/questionnaire";
 import { loadAnswers, saveAnswer } from "@/lib/questionnaire-storage";
 import { cn } from "@/lib/utils";
 
 type Props = {
   questions: ApiQuestion[]; // Qa1–Qa3 (3 items)
+};
+
+type LevelResult = {
+  level: string;
+  score: number;
+  color: string;
+};
+
+const LEVEL_COLORS: Record<string, string> = {
+  Beginner: "#22c55e",
+  "Lower Intermediate": "#f59e0b",
+  Intermediate: "#3b82f6",
+  Advanced: "#8b5cf6",
 };
 
 export function LevelQuestionnaireClient({ questions }: Props) {
@@ -30,7 +43,32 @@ export function LevelQuestionnaireClient({ questions }: Props) {
   });
 
   const question = questions[subStep];
+
+  // Show error state when no questions loaded
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-grey-bg">
+        <AppBar />
+        <div className="flex min-h-[calc(100vh-73px)] items-center justify-center px-4">
+          <div className="text-center">
+            <p className="mb-2 font-heading text-lg font-bold text-red-600">
+              Gagal memuat pertanyaan
+            </p>
+            <p className="font-body text-sm text-gray-500">
+              Pastikan backend sudah running dan NEXT_PUBLIC_API_URL sudah benar.
+            </p>
+            <p className="mt-4 font-body text-xs text-gray-400">
+              Halaman akan coba dimuat ulang...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const questionId = question?.id;
+
+  const [levelResult, setLevelResult] = useState<LevelResult | null>(null);
+  const [levelLoading, setLevelLoading] = useState(false);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(() => {
     if (typeof window === "undefined" || !questionId) return null;
@@ -38,12 +76,44 @@ export function LevelQuestionnaireClient({ questions }: Props) {
   });
 
   const onSelect = useCallback(
-    (optionKey: string) => {
+    async (optionKey: string) => {
       if (!questionId) return;
       setSelectedKey(optionKey);
       saveAnswer(questionId, optionKey);
+
+      // After selecting answer, call BE compute-level if all 3 answered
+      if (total === 3) {
+        const updatedAnswers = loadAnswers();
+        const allAnswered =
+          updatedAnswers[questions[0]?.id] &&
+          updatedAnswers[questions[1]?.id] &&
+          updatedAnswers[questions[2]?.id];
+        if (allAnswered) {
+          setLevelLoading(true);
+          try {
+            const payload = questions.map((q) => ({
+              question_id: q.id,
+              answer_option: updatedAnswers[q.id],
+            }));
+            const result = await computeLevelApi(payload);
+            setLevelResult({
+              level: result.level,
+              score: result.score,
+              color: LEVEL_COLORS[result.level] ?? "#6b7280",
+            });
+          } catch {
+            setLevelResult({
+              level: "Intermediate",
+              score: 0.5,
+              color: "#3b82f6",
+            });
+          } finally {
+            setLevelLoading(false);
+          }
+        }
+      }
     },
-    [questionId],
+    [questionId, total, questions],
   );
 
   const handleNext = () => {
@@ -74,13 +144,9 @@ export function LevelQuestionnaireClient({ questions }: Props) {
 
   // Level indicator shows after Qa3 is answered
   const showLevelIndicator = subStep === total - 1 && Boolean(selectedKey);
-  const levelResult = showLevelIndicator
-    ? computeLevel({
-        programming_familiarity: loadAnswers()[questions[0]?.id],
-        domain_comfort: loadAnswers()[questions[1]?.id],
-        formal_preparation: loadAnswers()[questions[2]?.id],
-      })
-    : null;
+
+  // Build level result from BE response
+  const displayLevel = showLevelIndicator ? levelResult : null;
 
   return (
     <div className="min-h-screen bg-grey-bg">
@@ -111,10 +177,11 @@ export function LevelQuestionnaireClient({ questions }: Props) {
                 ))}
               </div>
 
-              {showLevelIndicator && levelResult && (
+              {showLevelIndicator && displayLevel && (
                 <LevelIndicator
-                  label={levelResult.label}
-                  color={levelResult.color}
+                  label={displayLevel.level}
+                  color={displayLevel.color}
+                  loading={levelLoading}
                 />
               )}
             </div>
