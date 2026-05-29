@@ -80,10 +80,14 @@ function ProfileSkeleton() {
 
 function sectionLabel(section: string): string {
   const map: Record<string, string> = {
-    "SUB-BAGIAN A — LEVEL": "Tahap 1 — Evaluasi Level",
-    "SUB-BAGIAN B — PREFERENCE": "Tahap 2 — Preferensi & Tujuan",
+    "LEVEL MEASUREMENT": "Tahap 1 — Evaluasi Level",
+    "PROFIL & DEMOGRAFI": "Profil & Demografi",
+    "GAYA BELAJAR": "Gaya Belajar",
+    "KETERSEDIAAN WAKTU": "Ketersediaan Waktu",
+    "TUJUAN & MOTIVASI": "Tujuan & Motivasi",
+    "KOMPETENSI TEKNIS": "Kompetensi Teknis",
   };
-  return map[section] ?? section.toLowerCase();
+  return map[section] ?? section;
 }
 
 // ---------------------------------------------------------------------------
@@ -559,7 +563,7 @@ export function ProfileForm({ questions }: Props) {
           </div>
         </section>
 
-        {/* Right: 32 questionnaire questions grouped by section */}
+        {/* Right: questionnaire questions grouped by section */}
         <section className="space-y-8 lg:col-span-8">
           {answersError && (
             <div className="rounded border border-red-200 bg-red-50 px-4 py-3 font-body text-sm font-semibold text-red-700">

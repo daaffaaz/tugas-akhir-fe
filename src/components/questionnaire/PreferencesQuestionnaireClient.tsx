@@ -62,14 +62,12 @@ export function PreferencesQuestionnaireClient({
       try {
         const allQuestions = [...levelQuestions, ...questions];
         const payload = buildSubmissionPayload(allQuestions);
-        console.log("DEBUG payload:", JSON.stringify(payload, null, 2));
         await submitQuestionnaire(payload);
         clearAnswers();
         router.push("/questionnaire/completion");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Terjadi kesalahan. Silakan coba lagi.";
         setSubmitError(msg);
-        console.error("DEBUG submit error:", err);
       } finally {
         setIsSubmitting(false);
       }
