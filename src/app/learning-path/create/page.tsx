@@ -2,6 +2,16 @@ import { AppBar } from "@/components/layout/AppBar";
 import { Footer } from "@/components/layout/Footer";
 import { CreatePathForm } from "./create-path-form";
 
+function InfoIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="mt-0.5 flex-shrink-0">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
 export default function CreateLearningPathPage() {
   return (
     <div className="relative flex min-h-screen flex-col bg-[#fcfcfc] font-body text-dark">
@@ -23,6 +33,19 @@ export default function CreateLearningPathPage() {
             <p className="mt-4 max-w-xl font-body text-lg font-medium text-[#444749]">
               Masukkan topik di bawah agar kami dapat buat path untuk topiknya.
             </p>
+          </div>
+
+          {/* AI Note */}
+          <div className="mb-10 flex w-full items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+            <InfoIcon />
+            <div className="font-body text-sm text-amber-800">
+              <p className="font-bold text-amber-900">Catatan tentang learning path</p>
+              <p className="mt-1">
+                Learning path yang ditampilkan bersifat saran yang dihasilkan oleh AI. Gunakan sebagai
+                panduan atau referensi awal, dan tetap pertimbangkan kebutuhan, jadwal, serta
+                preferensi belajar kamu sendiri sebelum mengambil keputusan.
+              </p>
+            </div>
           </div>
           <CreatePathForm />
         </div>

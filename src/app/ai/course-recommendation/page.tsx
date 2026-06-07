@@ -110,6 +110,19 @@ function PageContent() {
           </p>
         </div>
 
+        {/* AI Note */}
+        <div className="mb-8 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <InfoIcon />
+          <div className="font-body text-sm text-amber-800">
+            <p className="font-bold text-amber-900">Catatan tentang rekomendasi AI</p>
+            <p className="mt-1">
+              Rekomendasi yang ditampilkan bersifat saran yang dihasilkan oleh AI. Gunakan sebagai
+              panduan atau referensi awal, dan tetap pertimbangkan kebutuhan, budget, serta
+              jadwal kamu sendiri sebelum mengambil keputusan.
+            </p>
+          </div>
+        </div>
+
         {/* Input Form */}
         <div className="mb-8 space-y-5 rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
           <TopicInput
@@ -268,6 +281,16 @@ function PageContent() {
 }
 
 // ─── Icons ──────────────────────────────────────────────────────────────────
+
+function InfoIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="mt-0.5 flex-shrink-0">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
 
 function SparklesIcon() {
   return (
