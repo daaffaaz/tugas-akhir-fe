@@ -49,7 +49,7 @@ export function CreatePathForm() {
       <div className="space-y-10">
         <div>
           <label className="mb-3 block px-1 font-body text-sm font-bold uppercase tracking-[0.08em] text-[#444749]">
-            Tujuan pembelajaran
+            Target pembelajaran
           </label>
           <div className="relative">
             <input
