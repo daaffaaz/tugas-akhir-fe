@@ -250,14 +250,16 @@ function PageContent() {
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
-              {recommendations.map((rec) => (
-                <CourseRecommendationCard
-                  key={rec.id}
-                  recommendation={rec}
-                  onSaveToggle={toggleSaved}
-                  regenerateCount={rec.regenerate_count}
-                />
-              ))}
+              {[...recommendations]
+                .sort((a, b) => (b.match_score ?? 0) - (a.match_score ?? 0))
+                .map((rec) => (
+                  <CourseRecommendationCard
+                    key={rec.id}
+                    recommendation={rec}
+                    onSaveToggle={toggleSaved}
+                    regenerateCount={rec.regenerate_count}
+                  />
+                ))}
             </div>
 
             {/* Regenerate section */}
